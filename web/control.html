@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07100f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Radar 360">
+<link rel="manifest" href="/control.webmanifest">
+<link rel="icon" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<title>Radar 360 · Controle</title>
+<style>
+:root{color-scheme:dark;--accent:#5fffd2;--bg:#07100f;--card:#0d1a19;--line:#203b37;--text:#e8fff9;--muted:#88aaa2;
+  --soft:color-mix(in srgb,var(--accent) 16%,var(--card));--ink:color-mix(in srgb,var(--accent) 12%,#02100c)}
+:root[data-mode=light]{color-scheme:light;--bg:#eef3f2;--card:#fff;--line:#d6e2df;--text:#10201d;--muted:#5b716c;--soft:color-mix(in srgb,var(--accent) 16%,#fff)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,"Segoe UI",sans-serif;user-select:none;-webkit-user-select:none;
+  display:flex;flex-direction:column;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom))}
+.top{width:100%;max-width:420px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px}
+.top a{color:var(--muted);text-decoration:none}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
+.dot.ok{background:var(--accent)}
+.live{margin:12px 0 4px;position:relative}
+canvas{width:150px;height:150px;border-radius:50%;background:#000;border:2px solid var(--line);display:block}
+.live.off canvas{opacity:.25}
+.live button{position:absolute;right:-6px;bottom:-2px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:15px}
+.name{font-size:20px;font-weight:600;margin-top:6px;text-align:center}
+.sub{color:var(--muted);font-size:13px;min-height:18px;text-align:center}
+.pad{display:grid;grid-template-columns:repeat(3,84px);grid-template-rows:repeat(3,72px);gap:10px;margin:16px 0 14px}
+button{font:inherit;cursor:pointer}
+.k{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;touch-action:manipulation}
+.k b{font-size:24px;line-height:1}
+.k:active{background:var(--soft);transform:scale(.97)}
+.k.ok{border:2px solid var(--accent);border-radius:50%;width:72px;height:72px;justify-self:center;color:var(--accent);font-weight:700;font-size:18px}
+.k.on{color:var(--accent);border-color:var(--accent)}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:300px}
+.row .k{height:64px}
+.chips{display:flex;gap:8px;overflow-x:auto;width:100%;max-width:420px;margin-top:16px;padding:2px 2px 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:99px;padding:8px 14px;font-size:14px}
+.chips button.on{background:var(--accent);border-color:var(--accent);color:var(--ink)}
+.chips button.off{color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--card);border:1px solid var(--line);padding:10px 16px;border-radius:12px;opacity:0;transition:.2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+<script>
+// mesma aparencia escolhida no painel (Sistema -> Aparencia)
+(function(){try{const L=JSON.parse(localStorage.getItem('r360look')||'{}');let m=L.mode||'dark';
+if(m==='auto')m=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.mode=m;
+if(L.accent)document.documentElement.style.setProperty('--accent',L.accent)}catch(e){}})();
+</script>
+</head>
+<body>
+<div class="top"><span><span class="dot" id="dot"></span><span id="conn">conectando…</span></span><a href="/">Painel ›</a></div>
+
+<div class="live" id="liveBox"><canvas id="cv" width="360" height="360"></canvas><button id="liveBtn" aria-label="Tela ao vivo">◉</button></div>
+<div class="name" id="name">—</div>
+<div class="sub" id="sub"></div>
+
+<div class="pad">
+  <span></span><button class="k" data-b="up"><b>▲︎</b>brilho</button><span></span>
+  <button class="k" data-b="prev" aria-label="Anterior"><b>◀︎</b></button>
+  <button class="k ok" data-b="ok">OK</button>
+  <button class="k" data-b="next" aria-label="Próximo"><b>▶︎</b></button>
+  <span></span><button class="k" data-b="down"><b>▼︎</b>brilho</button><span></span>
+</div>
+<div class="row">
+  <button class="k" data-b="home"><b>⌂︎</b>relógio</button>
+  <button class="k" data-b="pause" id="pauseBtn"><b>⏸︎</b>pausar</button>
+  <button class="k" data-b="power" id="powerBtn"><b>⏻︎</b>tela</button>
+</div>
+<div class="chips" id="chips"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let st={},chipsKey='',live=true,busy=false,timer=0;
+try{live=localStorage.getItem('r360ctlLive')!=='0'}catch(e){}
+const buzz=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}};
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1600)}
+async function call(path,body){
+  const r=await fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});
+  if(r.status===401){location.reload();throw new Error('login')}
+  return r.json();
+}
+function draw(){
+  $('dot').className='dot'+(st.ok?' ok':'');$('conn').textContent=st.ok?(st.host||'Radar 360'):'sem conexão';
+  $('name').textContent=st.screenOn===false?'Tela apagada':(st.name||'—');
+  const bits=[];
+  if(st.detail)bits.push('detalhes abertos');
+  if(st.screen===1&&st.flights!=null)bits.push(st.flights+' aviões');
+  if(st.cycle)bits.push(st.paused?'troca pausada':'troca automática');
+  bits.push('brilho '+st.bright+'%');
+  $('sub').textContent=bits.join(' · ');
+  $('pauseBtn').classList.toggle('on',!!st.paused);
+  $('powerBtn').classList.toggle('on',st.screenOn===false);
+  const key=JSON.stringify(st.screens||[]);
+  if(key!==chipsKey){chipsKey=key;
+    $('chips').innerHTML=(st.screens||[]).map(s=>`<button data-s="${s.id}" class="${s.on?'':'off'}">${s.name}</button>`).join('');
+    $('chips').querySelectorAll('button').forEach(b=>b.onclick=()=>{buzz();call('/api/goto',{s:+b.dataset.s}).then(()=>soon()).catch(()=>{})})}
+  $('chips').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.s===st.screen));
+}
+async function poll(){
+  try{st=await call('/api/ctl');st.ok=true}catch(e){st.ok=false}
+  draw();
+}
+async function mirror(){
+  if(!live||busy||document.hidden)return;busy=true;
+  try{const r=await fetch('/api/screen',{cache:'no-store'});const b=new Uint8Array(await r.arrayBuffer());
+    const c=$('cv').getContext('2d'),img=c.createImageData(360,360),d=img.data;
+    for(let i=0,j=0;i<b.length;i+=2,j+=4){const v=b[i]<<8|b[i+1];d[j]=(v>>8&0xF8)|(v>>13);d[j+1]=(v>>3&0xFC)|(v>>9&3);d[j+2]=(v<<3&0xF8)|(v>>2&7);d[j+3]=255}
+    c.putImageData(img,0,0)}catch(e){}
+  busy=false;
+}
+function soon(){setTimeout(poll,250);setTimeout(mirror,350)}
+function loop(){clearTimeout(timer);if(!document.hidden){poll();mirror()}timer=setTimeout(loop,2000)}
+document.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{buzz();call('/api/button',{t:b.dataset.b}).then(j=>{if(j&&j.message)toast(j.message);soon()}).catch(()=>toast('Sem conexão'))});
+function liveSet(v){live=v;$('liveBox').classList.toggle('off',!v);try{localStorage.setItem('r360ctlLive',v?'1':'0')}catch(e){}if(v)mirror()}
+$('liveBtn').onclick=()=>{buzz();liveSet(!live);toast(live?'Tela ao vivo ligada':'Tela ao vivo desligada')};
+document.addEventListener('visibilitychange',loop);
+liveSet(live);loop();
+</script>
+</body>
+</html>

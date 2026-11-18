@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07100f">
+<title>Radar 360</title>
+<style>
+:root{color-scheme:dark;--accent:#5fffd2;--bg:#07100f;--card:#0d1a19;--card2:#081311;--line:#203b37;--text:#e8fff9;--muted:#88aaa2;--warn:#ffd65a;--bad:#ff8a8a;--radius:16px;--fs:15px;
+  --ink:color-mix(in srgb,var(--accent) 12%,#02100c);--soft:color-mix(in srgb,var(--accent) 16%,var(--card));--edge:color-mix(in srgb,var(--accent) 22%,var(--line));--at:var(--accent)}
+:root[data-mode=light]{color-scheme:light;--bg:#eef3f2;--card:#ffffff;--card2:#f4f8f7;--line:#d6e2df;--text:#10201d;--muted:#5b716c;--warn:#8a6400;--bad:#b3261e;
+  --soft:color-mix(in srgb,var(--accent) 16%,#fff);--edge:color-mix(in srgb,var(--accent) 35%,var(--line));--at:color-mix(in srgb,var(--accent) 55%,#000)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font:var(--fs) system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}
+.app{display:flex;min-height:100vh}
+/* barra lateral (PC) / abas embaixo (celular) */
+#tabs{position:fixed;z-index:5;background:var(--card);border-color:var(--line);display:flex}
+#tabs .brand{display:none}
+#tabs button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;display:flex;align-items:center;gap:11px;border-radius:11px}
+#tabs button svg{width:22px;height:22px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tabs button.on{color:var(--at);background:var(--soft)}
+main{flex:1;min-width:0;padding:16px 14px 96px;max-width:1180px;margin:0 auto}
+@media(max-width:899px){
+  #tabs{left:0;right:0;bottom:0;border-top:1px solid var(--line);justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  #tabs button{flex-direction:column;gap:3px;font-size:11px;padding:6px 8px;flex:1}
+  #tabs button.on{background:none}
+}
+@media(min-width:900px){
+  #tabs{top:0;bottom:0;left:0;width:220px;flex-direction:column;gap:4px;padding:18px 12px;border-right:1px solid var(--line)}
+  header .logo{display:none}
+  #tabs .brand{display:flex;align-items:center;gap:10px;margin:0 6px 22px}
+  #tabs button{padding:11px 12px;font-size:15px}
+  main{margin-left:220px;padding:24px 28px 40px}
+}
+header{display:flex;align-items:center;gap:12px;margin:0 2px 14px}
+.logo{width:40px;height:40px;border:1.5px solid var(--accent);border-radius:50%;display:grid;place-items:center;color:var(--accent);font-size:20px;flex:none}
+h1{font-size:20px;margin:0;font-weight:600}
+header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.st{margin-left:auto;text-align:right;font-size:12px;color:var(--muted)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-right:6px}
+.dot.on{background:var(--accent)}
+.sub{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.sub button{background:var(--card);border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:99px;font:inherit;font-size:14px;cursor:pointer}
+.sub button.on{background:var(--soft);color:var(--at);border-color:var(--edge)}
+section,.pane{display:none}section.on,.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:0 0 12px}
+.card h2{font-size:12px;letter-spacing:.12em;color:var(--at);margin:0 0 14px;text-transform:uppercase;font-weight:600}
+.cols{display:grid;gap:12px}
+@media(min-width:900px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.cols>.card{margin:0}.span2{grid-column:1/-1}}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.full{grid-column:1/-1}
+label{display:block;color:var(--muted);font-size:12px}
+input,select{width:100%;margin-top:5px;border:1px solid var(--line);background:var(--card2);color:var(--text);padding:10px 11px;border-radius:10px;font:inherit;outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+input[type=range]{padding:0;accent-color:var(--accent);background:none;border:0}
+input[type=checkbox]{width:auto;margin:0;accent-color:var(--accent)}
+input[type=color]{width:44px;height:34px;padding:2px;margin:0}
+.check{display:flex;align-items:center;gap:9px;padding:10px;background:var(--card2);border-radius:10px;color:var(--text);font-size:14px}
+.btn{border:0;border-radius:11px;background:var(--accent);color:var(--ink);padding:11px 18px;font:inherit;font-weight:700;cursor:pointer}
+.btn2{border:1px solid var(--line);border-radius:11px;background:var(--card2);color:var(--text);padding:10px 15px;font:inherit;cursor:pointer}
+.btn2:hover{border-color:var(--edge)}
+.danger{border-color:color-mix(in srgb,var(--bad) 55%,var(--line));color:var(--bad)}
+button:disabled{opacity:.5}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.note{color:var(--muted);font-size:13px;line-height:1.55}
+.warnbox .x{float:right;margin:-4px -4px 4px 10px;background:none;border:0;color:inherit;font-size:16px;cursor:pointer;padding:2px 6px}
+.warnbox{border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 10%,var(--card));color:var(--warn);border-radius:12px;padding:12px;margin:0 0 12px;font-size:14px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
+dt{color:var(--muted);font-size:13px}dd{margin:0;overflow-wrap:anywhere}
+.slot{display:grid;grid-template-columns:28px 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
+.slot b{color:var(--at);padding-bottom:12px;text-align:center}
+/* lista de telas: chave + ordem */
+.ord{list-style:none;margin:0;padding:0}
+.ord li{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.ord li:last-child{border-bottom:0}
+.ord .n{width:22px;color:var(--muted);text-align:right;font-size:13px}
+.ord .t{flex:1}.ord .off{color:var(--muted)}
+.ord .mv{width:38px;height:34px;padding:0;border:1px solid var(--line);border-radius:9px;background:var(--card2);color:var(--text);font-size:15px;cursor:pointer}
+.ord .mv:disabled{opacity:.3}
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.15s}
+.sw span::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.15s}
+.sw input:checked+span{background:var(--accent)}
+.sw input:checked+span::after{left:21px;background:var(--ink)}
+.sw input:disabled+span{opacity:.5}
+.nets{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
+.net{display:flex;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.net:hover{background:var(--soft)}
+.mirror{display:grid;place-items:center;margin:4px 0 14px}
+.mirror canvas{width:min(78vw,320px);height:auto;aspect-ratio:1;border-radius:50%;border:2px solid var(--line);background:#000;box-shadow:0 0 0 7px var(--card2)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:300px;margin:0 auto}
+.dpad .btn2{padding:12px 4px;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.dpad small{font-size:11px;color:var(--muted)}
+.dpad .okb{border-radius:50%;aspect-ratio:1;border-color:var(--accent);color:var(--accent)}
+.pad .btn2{padding:14px 6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips button{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:99px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+.chips button.on{border-color:var(--accent);background:var(--accent);color:var(--ink)}
+.soon{display:grid;place-items:center;text-align:center;padding:26px 10px;color:var(--muted)}
+.soon b{color:var(--text);font-size:17px;display:block;margin-bottom:6px}
+.badge{display:inline-block;border:1px solid var(--edge);border-radius:99px;padding:3px 9px;color:var(--at);font-size:12px}
+progress{width:100%;height:10px;accent-color:var(--accent)}
+.checks2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.mappick{position:relative;height:240px;margin-top:12px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#0b0e13;cursor:crosshair;touch-action:manipulation}
+#mapTiles img{position:absolute;width:256px;height:256px;max-width:none;pointer-events:none}
+.pin{position:absolute;left:50%;top:50%;width:18px;height:18px;border:3px solid #fff;border-radius:50% 50% 50% 0;background:var(--accent);transform:translate(-50%,-100%) rotate(-45deg);pointer-events:none}
+.mz{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}.mz button{width:38px;height:38px;border-radius:8px;border:1px solid #46505d;background:#171c24;color:#fff;font-size:20px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:12px}
+.thumb{position:relative}.thumb img{width:100%;aspect-ratio:1;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.thumb button{position:absolute;top:2px;right:2px;border-radius:50%;width:28px;height:28px;border:0;background:#2a1111;color:#ffb4b4;cursor:pointer}
+/* aparencia */
+.swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.swatches button{width:34px;height:34px;border-radius:50%;border:3px solid var(--card);outline:2px solid transparent;cursor:pointer}
+.swatches button.on{outline-color:var(--text)}
+.swatches .pick{position:relative;width:34px;height:34px;border-radius:50%;border:2px dashed var(--muted);display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;overflow:hidden}
+.swatches .pick.on{border:3px solid var(--card);outline:2px solid var(--text);background:var(--accent);color:var(--ink)}
+.swatches .pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;color:var(--muted);padding:8px;border-radius:8px;font:inherit;font-size:14px;cursor:pointer}
+.seg button.on{background:var(--soft);color:var(--at)}
+pre.box{white-space:pre-wrap;font-size:12px;background:var(--card2);border:1px solid var(--line);border-radius:9px;padding:10px;max-height:300px;overflow:auto}
+@media(max-width:560px){.checks2{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.full{grid-column:auto}.st{display:none}.slot{grid-template-columns:22px 1fr auto}.slot .pw{grid-column:2/3}}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--accent);color:var(--text);padding:11px 18px;border-radius:99px;display:none;z-index:9;max-width:92vw;text-align:center;box-shadow:0 6px 24px #0006}
+@media(min-width:900px){.toast{bottom:24px;left:calc(50% + 110px)}}
+</style>
+<script>
+const LOOK_DEF={mode:'dark',accent:'#5fffd2',radius:'12',fs:'15'};
+function lookGet(){try{return Object.assign({},LOOK_DEF,JSON.parse(localStorage.getItem('r360look')||'{}'))}catch(e){return Object.assign({},LOOK_DEF)}}
+function lookApply(L){const r=document.documentElement;let m=L.mode;
+  if(m==='auto')m=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+  r.dataset.mode=m;r.style.setProperty('--accent',L.accent);r.style.setProperty('--radius',L.radius+'px');r.style.setProperty('--fs',L.fs+'px');}
+lookApply(lookGet());
+</script>
+</head>
+<body>
+<div class="app">
+<nav id="tabs">
+  <div class="brand"><div class="logo">⌁</div><div><b>Radar 360</b><br><small class="note" id="verSide"></small></div></div>
+  <button data-t="remote" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Início</span></button>
+  <button data-t="screensSec"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span>Telas</span></button>
+  <button data-t="features"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Recursos</span></button>
+  <button data-t="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Status</span></button>
+  <button data-t="system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Sistema</span></button>
+</nav>
+<main>
+<header>
+  <div class="logo">⌁</div>
+  <div><h1>RADAR 360</h1><p>Firmware PV2KSM · <span id="ver">…</span></p></div>
+  <div class="st"><div><span id="dot" class="dot"></span><b id="net">…</b></div><small id="ip"></small></div>
+</header>
+
+
+<div id="safeWarn" class="warnbox" style="display:none">⚠️ <b>Modo seguro</b>: o aparelho reiniciou várias vezes seguidas logo ao ligar e voltou para as telas simples. Veja <b>Status → Diagnóstico</b> e mande para análise. Ao reiniciar normalmente, tudo volta ao que estava salvo.</div>
+<div id="pwWarn" class="warnbox" style="display:none"><button class="x" id="pwWarnX" title="Fechar" aria-label="Fechar aviso">✕</button>⚠️ A senha do painel ainda é a de fábrica. Troque em <b>Sistema → Configurações → Acesso</b>.</div>
+<div id="packWarn" class="warnbox" style="display:none">⚠️ <b>Pacote visual</b> <span id="packWarnWhy"></span>: os temas estão usando as fontes simples. Envie o arquivo <b>radar360-pack</b> em <b>Sistema → Atualizações</b>.</div>
+
+<!-- STATUS -->
+<section id="status">
+  <div class="card"><h2>Aparelho</h2><dl id="stDev"></dl></div>
+  <div class="card"><h2>Desempenho</h2><dl id="stPerf"></dl>
+    <p class="note">Tempo de desenho por tela (média das últimas vezes em que ela apareceu):</p><dl id="stPerfScr"></dl>
+    <p class="note">A tela recebe os dados por um fio só: a 40 MHz um quadro inteiro leva ~52 ms (até ~19 quadros/s); a 80 MHz, ~26 ms. Só as linhas que mudaram são enviadas.</p></div>
+  <div class="card"><h2>Rede</h2><dl id="stNet"></dl></div>
+
+  <div class="card"><h2>Memória</h2><dl id="stMem"></dl></div>
+  <div class="card"><h2>Diagnóstico</h2>
+    <p class="note" id="crashLast">Nenhum reinício anormal registrado.</p>
+    <div class="row"><button class="btn2" id="crashShow">Ver detalhes</button><button class="btn2" id="crashCopy">Copiar</button><button class="btn2 danger" id="crashClear">Apagar histórico</button></div>
+    <pre id="crashBox" class="box" style="display:none"></pre>
+  </div>
+</section>
+
+<!-- INICIO -->
+<section id="remote" class="on">
+  <div class="card">
+    <h2>Ir para</h2>
+    <div class="chips" id="screens"></div>
+  </div>
+<div class="cols">
+  <div class="card">
+    <h2>Tela ao vivo</h2>
+    <div class="mirror"><canvas id="scr" width="360" height="360"></canvas></div>
+    <div class="row" style="justify-content:center"><label class="check"><input type="checkbox" id="live" checked>Atualizar a imagem</label></div>
+  </div>
+  <div class="card">
+    <h2>Controle remoto <a href="/control" style="float:right;font-size:12px;letter-spacing:0;text-transform:none;color:var(--at)">abrir controle rápido ›</a></h2>
+    <div class="dpad">
+      <span></span><button class="btn2" data-b="up" aria-label="Mais brilho">▲<small>brilho +</small></button><span></span>
+      <button class="btn2" data-b="prev" aria-label="Anterior">◀<small>anterior</small></button>
+      <button class="btn2 okb" data-b="ok" aria-label="Detalhes">OK<small>detalhes</small></button>
+      <button class="btn2" data-b="next" aria-label="Próximo">▶<small>próximo</small></button>
+      <span></span><button class="btn2" data-b="down" aria-label="Menos brilho">▼<small>brilho −</small></button><span></span>
+    </div>
+    <div class="pad" style="margin-top:12px">
+      <button class="btn2" data-b="home">⌂<br><small class="note">início</small></button>
+      <button class="btn2" data-b="pause">⏸<br><small class="note">pausar troca</small></button>
+      <button class="btn2" data-b="power">⏻<br><small class="note">tela on/off</small></button>
+    </div>
+    <p class="note">◀ ▶ trocam de tela. Dentro dos detalhes do voo, das notícias, do porta-retrato e do horóscopo, trocam de avião, manchete, foto ou signo. OK abre e fecha os detalhes.</p>
+  </div>
+  <div class="card span2">
+    <h2>Tela</h2>
+    <div class="grid">
+      <label class="full">Brilho agora <b id="rbv"></b><input type="range" id="rb" min="1" max="100"></label>
+      <div class="row full">
+        <button class="btn2" id="pwrOff">Apagar tela</button>
+        <button class="btn2" id="pwrOn">Acender tela</button>
+        <button class="btn2" id="saveBr">Salvar este brilho</button>
+      </div>
+      <label class="full">Mensagem na tela<input id="msg" maxlength="40" placeholder="Ex.: Jantar pronto!"></label>
+      <div class="full"><button class="btn2" id="sendMsg">Mostrar mensagem</button></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- TELAS -->
+<section id="screensSec">
+  <div class="card">
+    <h2>Telas e ordem de exibição</h2>
+    <p class="note">Ligue as telas que devem aparecer e use ▲ ▼ para mudar a ordem (botão e troca automática). O relógio fica sempre ligado.</p>
+    <ul class="ord" id="ordList"></ul>
+  </div>
+  <div class="row"><button class="btn" id="ordSave">Salvar</button><button class="btn2" id="ordReset">Ordem original</button></div>
+</section>
+
+<!-- SISTEMA -->
+<section id="system">
+  <div class="sub" data-group="sys">
+    <button data-p="sysCfg" class="on">Configurações</button>
+    <button data-p="sysUpd">Atualizações</button>
+    <button data-p="sysLook">Aparência</button>
+  </div>
+
+  <div class="pane on" id="sysCfg">
+    <div class="card">
+      <h2>Wi-Fi · redes salvas</h2>
+      <p class="note">O aparelho conecta na rede salva com o sinal mais forte. Deixe a senha em branco para manter a atual. Redes ocultas: deixe-as no topo da lista.</p>
+      <div id="slots"></div>
+      <div class="row"><button class="btn2" id="wAdd">+ Adicionar rede</button><button class="btn2" id="scan">Procurar redes</button><span class="note" id="scanSt"></span></div>
+      <div class="nets" id="nets" style="display:none"></div>
+      <p class="note">Toque numa rede encontrada para adicioná-la. Mudanças no Wi-Fi reiniciam o aparelho.</p>
+    </div>
+
+    <div class="card">
+      <h2>Hora</h2>
+      <div class="grid">
+        <label>Fuso horário
+          <select id="tzSel">
+            <option value="<-03>3">Brasília (UTC−3)</option>
+            <option value="<-04>4">Amazonas, MT, MS, RO, RR (UTC−4)</option>
+            <option value="<-05>5">Acre (UTC−5)</option>
+            <option value="<-02>2">Fernando de Noronha (UTC−2)</option>
+            <option value="UTC0">UTC</option>
+            <option value="custom">Outro (POSIX)…</option>
+          </select>
+        </label>
+        <label>Fuso POSIX<input id="tz" placeholder="GMT0"></label>
+        <label>Servidor NTP principal<input id="ntp1"></label>
+        <label>Servidor NTP reserva<input id="ntp2"></label>
+        <label class="full check"><input type="checkbox" id="showSeconds">Mostrar os segundos no anel do relógio</label>
+        <label>Idioma / Language / Idioma<select id="lang"><option value="0">English</option><option value="1">Português</option><option value="2">Español</option></select></label>
+        <label>Processador<select id="cpuMhz"><option value="240">240 MHz — mais fluido (padrão)</option><option value="160">160 MHz — equilíbrio</option><option value="80">80 MHz — economia</option></select></label>
+        <label class="check"><input type="checkbox" id="cpuAuto">Automático: baixa sozinho com a tela apagada (80) ou parada (160)</label>
+        <label class="full check"><input type="checkbox" id="lcdTurbo">Tela turbo (fio da tela a 80 MHz, dobro de quadros por segundo)</label>
+        <p class="note full" id="lcdTurboNote">Ao ligar e salvar, o aparelho mostra uma tela de teste por 20 s. Se a imagem estiver perfeita, aperte o botão do aparelho para manter. Sem o botão, volta sozinho para 40 MHz.</p>
+        <div class="full row"><button class="btn2" id="sync">Sincronizar agora</button><span class="note" id="clockNow"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tela</h2>
+      <div class="grid">
+        <label>Brilho de dia <b id="bv"></b><input type="range" id="bright" min="1" max="100"></label>
+        <label>Brilho de noite <b id="nbv"></b><input type="range" id="nightBright" min="0" max="100"></label>
+        <label class="full check"><input type="checkbox" id="nightOn">Usar brilho de noite no horário abaixo</label>
+        <label>Começa às<input type="time" id="nightStart"></label>
+        <label>Termina às<input type="time" id="nightEnd"></label>
+        <label>Rotação
+          <select id="rotation"><option value="0">0°</option><option value="1">90°</option><option value="2">180°</option><option value="3">270°</option></select>
+        </label>
+        <label>Trocar de tela sozinho
+          <select id="cycleSecs"><option value="0">Não</option><option value="15">A cada 15 s</option><option value="30">A cada 30 s</option><option value="60">A cada 1 min</option><option value="300">A cada 5 min</option></select>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Acesso</h2>
+      <div class="grid">
+        <label class="full">Nome na rede<input id="host" maxlength="31" placeholder="radar"><small class="note" id="hostHint"></small></label>
+        <label>Usuário do painel<input id="wuser" maxlength="16" autocomplete="username"></label>
+        <label>Nova senha<input id="wpass" type="password" maxlength="32" autocomplete="new-password" placeholder="mínimo 6 caracteres"></label>
+        <div class="full"><button class="btn2" id="savePw">Trocar usuário e senha</button></div>
+      </div>
+    </div>
+
+    <div class="row"><button class="btn" id="save">Salvar configurações</button></div>
+  </div>
+
+  <div class="pane" id="sysUpd">
+    <div class="card">
+      <h2>Versão instalada</h2>
+      <dl id="updInfo"></dl>
+    </div>
+    <div class="card">
+      <h2>Atualizar pelo navegador</h2>
+      <p class="note">Escolha o arquivo <b>.bin</b> de atualização do Radar360. Mantenha o aparelho ligado; ele reinicia sozinho no fim.</p>
+      <div class="row"><input type="file" id="fw" accept=".bin,application/octet-stream" style="flex:1"><button class="btn" id="upd">Atualizar</button></div>
+      <progress id="updProg" value="0" max="100" style="margin-top:12px"></progress>
+      <p class="note" id="updMsg"></p>
+    </div>
+    <div class="card">
+      <h2>Pacote visual</h2>
+      <p class="note">Fontes, fundos, silhuetas, bandeiras e lua dos temas ficam numa parte separada da memória. Só precisa enviar quando uma versão nova pedir (arquivo <b>radar360-pack</b>).</p>
+      <dl id="packInfo"></dl>
+      <div class="row"><input type="file" id="pk" accept=".bin,application/octet-stream" style="flex:1"><button class="btn" id="pkUp">Enviar pacote</button></div>
+      <progress id="pkProg" value="0" max="100" style="margin-top:12px"></progress>
+      <p class="note" id="pkMsg"></p>
+    </div>
+    <div class="card">
+      <h2>Cópia das configurações</h2>
+      <p class="note">Salva num arquivo as redes Wi-Fi, senha do painel, chave da CARTO, hora, brilho, telas, temas e ordem. As fotos não entram. <b>O arquivo tem senhas</b>: guarde em lugar seguro.</p>
+      <div class="row"><button class="btn2" id="bkExport">Exportar configurações</button><label class="btn2" style="cursor:pointer">Importar arquivo…<input type="file" id="bkImport" accept=".json,application/json" style="display:none"></label></div>
+    </div>
+    <div class="card">
+      <h2>Aparelho</h2>
+      <p class="note">O padrão de fábrica apaga redes Wi-Fi, senha e preferências. O aparelho volta no modo configuração (rede <b id="apName">Radar360-XXXX</b>).</p>
+      <div class="row"><button class="btn2" id="reboot">Reiniciar</button><button class="btn2" id="recov">Modo recuperação</button><button class="btn2 danger" id="factory">Padrão de fábrica</button></div>
+      <p class="note">Modo recuperação: um sistema mínimo, separado, só para enviar firmware e pacote pelo navegador. Também abre segurando o botão do aparelho por ~5 s ao ligar.</p>
+    </div>
+  </div>
+  <div class="pane" id="sysLook">
+    <div class="card">
+      <h2>Aparência do painel</h2>
+      <p class="note">Vale só para este navegador (celular e PC podem ficar diferentes). Não muda nada no aparelho.</p>
+      <label>Modo</label>
+      <div class="seg" id="lookMode" style="margin:6px 0 14px"><button data-v="dark">Escuro</button><button data-v="light">Claro</button><button data-v="auto">Automático</button></div>
+      <label>Cor de destaque</label>
+      <div class="swatches" id="lookAccent" style="margin:8px 0 14px"></div>
+      <label>Cantos</label>
+      <div class="seg" id="lookRadius" style="margin:6px 0 14px"><button data-v="18">Bem redondos</button><button data-v="12">Médios</button><button data-v="6">Retos</button></div>
+      <label>Tamanho do texto</label>
+      <div class="seg" id="lookFs" style="margin:6px 0 14px"><button data-v="14">Menor</button><button data-v="15">Normal</button><button data-v="17">Grande</button></div>
+      <button class="btn2" id="lookReset">Voltar ao padrão</button>
+    </div>
+  </div>
+</section>
+
+<!-- RECURSOS -->
+<section id="features">
+  <div class="sub" data-group="feat">
+    <button data-p="fGeneral" class="on">Geral</button>
+    <button data-p="fFlights">Voos</button>
+    <button data-p="fWeather">Clima</button>
+    <button data-p="fPhotos">Porta-retrato</button>
+    <button data-p="fNews">Notícias</button>
+    <button data-p="fDmr">ID DMR</button>
+    <button data-p="fPc">PC</button>
+    <button data-p="fQuotes">Cotações</button>
+    <button data-p="fHoro">Horóscopo</button>
+  </div>
+
+  <div class="pane on" id="fGeneral">
+    <div class="card">
+      <h2>Relógio</h2>
+      <label>Estilo<select id="cStyle">
+        <option value="0">Realista — o céu acompanha o clima e a hora</option>
+        <option value="1">Clássico — ponteiros dourados com o clima</option>
+        <option value="2">Anel 24 h — temperatura de cada hora na borda</option>
+        <option value="3">Minimal — hora grande com o clima ao lado</option>
+        <option value="4">Cockpit — instrumento de avião (UTC, vento, QNH)</option>
+        <option value="5">Simples (primeira versão)</option>
+        <optgroup label="Vintage">
+        
+        <option value="7">Relógio de bolso — esmalte creme e ponteiros azuis</option>
+        </optgroup>
+        <optgroup label="Painel de avião">
+        
+        <option value="10">Altímetro — mostrador de altímetro com a data</option>
+        <option value="11">Horizonte artificial — céu e terra balançando</option>
+        <option value="12">Bússola HSI — a rosa gira, minutos = proa</option></optgroup>
+      </select></label>
+      <p class="note">No realista há sol, nuvens, chuva caindo, raios, neblina, noite com lua na fase certa, amanhecer e pôr do sol.</p>
+    </div>
+    <div class="card">
+      <h2>Localização</h2>
+      <p class="note">Centro do radar de voos e do clima.</p>
+      <div class="row"><input id="citySearch" placeholder="Buscar cidade (ex.: São Paulo)" style="flex:1"><button class="btn2" id="cityGo">Buscar</button></div>
+      <div id="cityRes" class="nets" style="display:none"></div>
+      <div class="grid" style="margin-top:12px">
+        <label>Latitude<input id="lat" type="number" step="0.00001"></label>
+        <label>Longitude<input id="lon" type="number" step="0.00001"></label>
+        <label class="full">Nome do lugar<input id="place" maxlength="48"></label>
+      </div>
+      <div id="map" class="mappick"><div id="mapTiles"></div><div class="pin"></div><div class="mz"><button type="button" data-z="1">+</button><button type="button" data-z="-1">−</button></div></div>
+      <p class="note">Toque no mapa para mudar a posição. Mapa © OpenStreetMap.</p>
+    </div>
+    <div class="card">
+      <h2>Mapas</h2>
+      <label>Fonte dos mapas<select id="mapSrc"><option value="0">CARTO (escuro e claro, recomendado — precisa de chave)</option><option value="1">OpenStreetMap (sem chave)</option></select></label>
+      <label class="full">Chave da CARTO<input id="cartoKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cole aqui a chave"></label>
+      <p class="note full" id="cartoNote">A CARTO passou a exigir uma chave, que é grátis: peça em <b>carto.com/basemaps/apikey</b> e marque uso pessoal (não comercial). Sem chave, o aparelho usa o OpenStreetMap. No estilo escuro com OpenStreetMap o mapa é escurecido.</p>
+      <div class="row full"><button class="btn2" id="cartoSave">Salvar chave</button><button class="btn2" id="cartoDel">Apagar chave</button></div>
+    </div>
+    <div class="row"><button class="btn" data-save="general">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fFlights">
+    <div class="card">
+      <h2>Voos (ADS-B)</h2>
+      <div class="grid">
+        <label>Raio (km)<input id="fRadius" type="number" min="5" max="250"></label>
+        <label>Atualizar a cada (s)<input id="fRefresh" type="number" min="5" max="120"></label>
+        <label>Altitude mínima (pés)<input id="fMinAlt" type="number" min="0" max="60000"></label>
+        <label>Altitude máxima (pés)<input id="fMaxAlt" type="number" min="500" max="60000"></label>
+        <label>Máximo de aviões<input id="fMax" type="number" min="1" max="40"></label>
+        <label>Fonte dos dados<select id="fSource"><option value="2">As duas (recomendado) — alterna e junta os aviões</option><option value="0">adsb.fi (como o original)</option><option value="1">adsb.lol</option></select></label>
+        <label>Estilo<select id="fStyle"><option value="0">Radar escuro (original)</option><option value="1">Mapa claro (original)</option><option value="3">Automático — claro de dia, escuro à noite</option><option value="2">Sonar sem mapa</option></select></label>
+        <label>Distância<select id="fDistU"><option value="0">Milhas náuticas (nm)</option><option value="1">Quilômetros (km)</option><option value="2">Milhas (mi)</option></select></label>
+        <label>Altitude<select id="fAltU"><option value="0">Pés (ft)</option><option value="1">Metros (m)</option></select></label>
+        <label>Velocidade<select id="fSpdU"><option value="0">Nós (kt)</option><option value="1">km/h</option><option value="2">mph</option></select></label>
+      </div>
+      <h2 style="margin-top:18px">Centro do radar</h2>
+      <div class="grid">
+        <label>Centralizar em<select id="fCenter"><option value="0">Minha localização (Geral)</option><option value="1">Aeroporto (ICAO)</option></select></label>
+        <label>Código ICAO<div class="row"><input id="fIcao" maxlength="4" placeholder="SBSJ" style="flex:1;text-transform:uppercase"><button class="btn2" id="icaoGo" type="button">Verificar</button></div></label>
+        <p class="note full" id="icaoName"></p>
+      </div>
+      <div class="checks2" style="margin-top:12px">
+        <label class="check"><input type="checkbox" id="fSweep">Varredura do radar</label>
+        <label class="check"><input type="checkbox" id="fRings">Anéis de distância</label>
+        <label class="check"><input type="checkbox" id="fVectors">Vetor de rumo</label>
+        <label class="check"><input type="checkbox" id="fCallsign">Indicativo</label>
+        <label class="check"><input type="checkbox" id="fAltitude">Altitude</label>
+        <label class="check"><input type="checkbox" id="fType">Modelo (sem altitude)</label>
+        <label class="check"><input type="checkbox" id="fGround">Aviões no solo</label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Tipos de aeronave</h2>
+      <div class="grid">
+        <label>Ícone<select id="fIcon"><option value="0">Silhueta do tipo</option><option value="1">Seta (original)</option></select></label>
+        <label>Cor dos aviões<select id="fColorBy"><option value="0">Automática por altitude</option><option value="1">Automática por categoria</option><option value="2">Cor única (escolher)</option></select></label>
+        <label id="fColorBox">Cor única<input type="color" id="fColor" value="#ffc857" style="height:40px;padding:2px"></label>
+        <label>Tamanho dos aviões e textos<select id="fSize"><option value="0">P — pequeno</option><option value="1">M — normal</option><option value="2">G — grande</option><option value="3">GG — bem grande</option></select></label>
+      </div>
+      <p class="note">Mostrar no radar:</p>
+      <div class="checks2" id="fTypes"></div>
+      <p class="note">Toque longo abre os detalhes do voo (modelo, rota, altitude…); toque curto passa para o próximo avião; toque duplo volta ao relógio. Rotas: adsbdb.com.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="flights">Salvar</button><button class="btn2" id="clearMap">Limpar cache do mapa</button></div>
+  </div>
+
+  <div class="pane" id="fWeather">
+    <div class="card">
+      <h2>Radar de chuva (como o original)</h2>
+      <div class="grid">
+        <label>Alcance<select id="wZoom"><option value="7">Região (~400 km)</option><option value="6">Estado (~800 km)</option><option value="5">País (~1600 km)</option><option value="4">Continente</option></select></label>
+        <label>Quadros da animação<input id="wFrames" type="number" min="2" max="10"></label>
+        <label>Velocidade (ms por quadro)<input id="wFrameMs" type="number" min="200" max="3000" step="50"></label>
+        <label>Estilo<select id="wStyle"><option value="0">Radar escuro (original)</option><option value="1">Mapa claro (original)</option><option value="3">Automático — claro de dia, escuro à noite</option><option value="2">Sem mapa</option></select></label>
+        <label class="full check"><input type="checkbox" id="wCards">Cartão de temperatura sobre o radar (toque longo mostra/esconde)</label>
+        <label class="full">Caixa da temperatura<select id="wCardStyle"><option value="1">Vidro fosco</option><option value="2">Neon térmico (cor muda com a temperatura)</option><option value="4">Painel de aviação (METAR)</option><option value="5">Mínimo — só o número</option><option value="6">Termômetro</option><option value="7">Rosa dos ventos</option><option value="9">LCD retrô</option><option value="10">Bolha de céu</option></select></label>
+      </div>
+      <p class="note">Dados: RainViewer (radar) e Open-Meteo (previsão), atualizados a cada 10–15 min.</p>
+    </div>
+    <div class="card">
+      <h2>Tempo agora</h2>
+      <input type="hidden" id="wNowStyle" value="0">
+      <label>Próximas horas<select id="wHoursStyle"><option value="0">Curva — gráfico da temperatura (original)</option><option value="1">Faixa do céu — a cor muda com as horas</option><option value="2">Cartões — próxima hora em destaque</option></select></label>
+      <label>Próximos dias<select id="wDaysStyle"><option value="0">Dourado — lista com barras (original)</option><option value="1">Colunas — mínima a máxima</option></select></label>
+      <p class="note">As telas “Próximas horas” e “Próximos dias” ligam em Recursos → Geral.</p>
+    </div>
+    <div class="card">
+      <h2>Local do clima</h2>
+      <label class="check"><input type="checkbox" id="wOwn">Usar um local diferente do radar de voos</label>
+      <div id="wLocBox" style="margin-top:10px">
+        <div class="row"><input id="wSearch" placeholder="Buscar cidade" style="flex:1"><button class="btn2" id="wGo" type="button">Buscar</button></div>
+        <div id="wRes" class="nets" style="display:none"></div>
+        <div class="grid" style="margin-top:10px">
+          <label>Latitude<input id="wLat" type="number" step="0.00001"></label>
+          <label>Longitude<input id="wLon" type="number" step="0.00001"></label>
+          <label class="full">Nome do lugar<input id="wPlace" maxlength="48"></label>
+        </div>
+      </div>
+    </div>
+    <div class="row"><button class="btn" data-save="weather">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fPhotos">
+    <div class="card">
+      <h2>Fotos</h2>
+      <p class="note">As fotos são recortadas e reduzidas para 360×360 no navegador, com qualidade alta, antes de enviar. O círculo mostra o que aparece na tela.</p>
+      <div class="row"><input type="file" id="photoFiles" accept="image/*" multiple style="flex:1"><button class="btn" id="photoSend">Enviar</button></div>
+      <progress id="photoProg" value="0" max="100" style="margin-top:10px"></progress>
+      <p class="note" id="photoInfo"></p>
+      <div id="photoList" class="thumbs"></div>
+    </div>
+    <div class="card">
+      <h2>Exibição</h2>
+      <div class="grid">
+        <label>Trocar a cada (s)<input id="pSecs" type="number" min="3" max="3600"></label>
+        <div></div>
+        <label class="check"><input type="checkbox" id="pShuffle">Ordem aleatória</label>
+        <label class="check"><input type="checkbox" id="pFade">Transição suave</label>
+        <label class="full">Relógio sobre a foto<select id="pStyle">
+          <option value="0">Nenhum</option><option value="1">Rodapé — hora e clima embaixo</option>
+          <option value="4">Ponteiros</option></select></label>
+        <label class="check full"><input type="checkbox" id="pWxPop">Aviso do clima (ex.: “Chuva em 15 min”) aparece por alguns segundos</label>
+      </div>
+      <p class="note">Toque longo pausa / continua.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="photos">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fNews">
+    <div class="card">
+      <h2>Notícias</h2>
+      <p class="note">Google Notícias (Brasil). Escolha os temas:</p>
+      <div class="checks2" id="topics"></div>
+      <div class="grid" style="margin-top:12px">
+        <label class="full">Busca (cidade ou assunto)<input id="nQuery" maxlength="47" placeholder="Ex.: São Paulo"></label>
+        <label class="full">Feed RSS/Atom próprio (opcional)<input id="nUrl" maxlength="159" placeholder="https://…/feed"></label>
+        <label>Cada manchete fica (s)<input id="nSecs" type="number" min="4" max="120"></label>
+        <label>Atualizar a cada<select id="nRefresh"><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hora</option><option value="120">2 horas</option></select></label>
+        <label>Estilo<select id="nStyle"><option value="0">Aurora — jornal clássico</option><option value="2">Telejornal — tarja e letreiro (GC)</option><option value="4">Canal 24 h — manchete, cartões e letreiro</option><option value="3">Plantão — sempre urgente</option><option value="5">Teletexto — TV retrô</option><option value="1">Simples</option></select></label>
+        <label class="check"><input type="checkbox" id="nUrgent">Plantão automático: manchetes com “urgente”, “alerta”, “Defesa Civil”… aparecem com a tarja vermelha</label>
+      </div>
+      <p class="note">Toque longo mostra o QR code da notícia para abrir no celular.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="news">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fHoro">
+    <div class="card">
+      <h2>Horóscopo</h2>
+      <p class="note">Signos para exibir (com mais de um, eles se alternam; toque longo passa para o próximo):</p>
+      <div class="checks2" id="hSigns"></div>
+      <div class="grid" style="margin-top:12px">
+        <label>Tema<select id="hTheme"><option value="0">Celestial — roda do zodíaco dourada</option><option value="1">Pergaminho — papel antigo e tinta sépia</option><option value="2">Constelação — estrelas do signo</option></select></label>
+        <label>Trocar de signo a cada<select id="hSecs"><option value="0">Só no botão</option><option value="10">10 s</option><option value="15">15 s</option><option value="30">30 s</option><option value="60">1 min</option></select></label>
+        <label class="check full"><input type="checkbox" id="hScores">Mostrar amor, trabalho e saúde (estrelas)</label>
+      </div>
+      <p class="note">A previsão é montada no próprio aparelho, em português, e muda todo dia para cada signo (é para diversão). A “Lua em …” é calculada de verdade.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="horo">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fDmr">
+    <div class="card">
+      <h2>ID DMR (hotspot)</h2>
+      <div class="grid">
+        <label class="full">Endereço do hotspot<input id="dHost" maxlength="39" placeholder="pi-star.local ou 192.168.0.50"></label>
+        <label>Consultar a cada (s)<input id="dPoll" type="number" min="2" max="60"></label>
+        <label class="check"><input type="checkbox" id="dLookup">Nome e cidade (RadioID.net)</label>
+        <label>Estilo<select id="dStyle"><option value="0">Aurora — dourado com louros</option><option value="1">Simples</option><option value="2">Bandeira de fundo</option><option value="3">Faixa diagonal com a bandeira</option><option value="4">Pixel art 8-bit</option><option value="5">Bandeira nas bordas</option></select></label>
+      </div>
+      <p class="note">Lê a tabela "Last Heard" do dashboard do Pi-Star ou WPSD pela rede local. Toque longo alterna entre destaque e lista.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="dmr">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fPc">
+    <div class="card">
+      <h2>PC (Windows)</h2>
+      <div class="grid">
+        <label class="full">Endereço do PC<input id="pcHost" maxlength="63" placeholder="192.168.0.10 ou o nome do PC (ex.: DESKTOP-PC)"></label>
+        <label>Atualizar a cada (s)<input id="pcSecs" type="number" min="1" max="60"></label>
+        <label class="full">Tema<select id="pcStyle"><option value="0">RGB gamer — anel colorido girando</option><option value="1">Gráfico ao vivo — último minuto</option><option value="2">Gerenciador de Tarefas — 4 cartões</option></select></label>
+      </div>
+      <p class="note" id="pcInfo"></p>
+      <p class="note">Pelo nome funciona quando a rede do Windows está como <b>Privada</b> (Configurações → Rede → Propriedades). Se não achar, use o IP; para o IP não mudar, reserve-o no roteador.</p>
+      <p class="note">No PC, abra o <b>LibreHardwareMonitor</b> (grátis) e ligue <b>Options → Remote Web Server → Run</b> (porta 8085, sem senha). Na primeira vez, o Windows pergunta se libera a rede: aceite. Para não esquecer, marque também <b>Start Minimized</b> e <b>Run On Windows Startup</b>. Depois ligue a tela "PC" em Telas.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="pc">Salvar</button></div>
+  </div>
+
+  <div class="pane" id="fQuotes">
+    <div class="card">
+      <h2>Cotações</h2>
+      <div class="grid">
+        <label>Moeda local<select id="qLocal"><option value="BRL">Real (R$)</option><option value="USD">Dólar (US$)</option><option value="EUR">Euro (€)</option><option value="GBP">Libra (£)</option><option value="ARS">Peso argentino</option><option value="JPY">Iene</option><option value="CAD">Dólar canadense</option><option value="AUD">Dólar australiano</option><option value="CHF">Franco suíço</option></select></label>
+        <label>Visual<select id="qStyle"><option value="0">Rodízio — uma por vez, com gráfico</option><option value="1">Plaquinha — lista toda</option></select></label>
+        <label>Rodízio: segundos por item<input id="qSecs" type="number" min="2" max="60"></label>
+        <label>Atualizar a cada (min)<input id="qRefresh" type="number" min="1" max="120"></label>
+      </div>
+      <label style="display:block;margin-top:12px">O que mostrar (até 10)</label>
+      <ul class="ord" id="qList"></ul>
+      <div class="row"><select id="qPick" style="flex:1"><option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="GBP">Libra (GBP)</option><option value="BTC">Bitcoin (BTC)</option><option value="ETH">Ethereum (ETH)</option><option value="ARS">Peso argentino (ARS)</option><option value="JPY">Iene (JPY)</option><option value="CAD">Dólar canadense (CAD)</option><option value="AUD">Dólar australiano (AUD)</option><option value="CHF">Franco suíço (CHF)</option><option value="CNY">Yuan (CNY)</option><option value="LTC">Litecoin (LTC)</option><option value="XRP">XRP</option><option value="DOGE">Dogecoin (DOGE)</option><option value="SOL">Solana (SOL)</option><option value="other">Outro código…</option></select><button class="btn2" id="qAdd">+ Adicionar</button></div>
+      <p class="note">Dados: AwesomeAPI (economia.awesomeapi.com.br), grátis e sem cadastro; os valores podem ter até 1 minuto de atraso. Depois ligue a tela "Cotações" em Telas.</p>
+    </div>
+    <div class="row"><button class="btn" data-save="quotes">Salvar</button></div>
+  </div>
+</section>
+
+</main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---- i18n do painel (PT e a fonte; EN/ES vem do dicionario I18N) ---- */
+var LANG = 1;            // 0=EN, 1=PT, 2=ES
+var I18N = {};           // I18N["texto pt"] = ["english","espanol"]
+function _t(s){ if(LANG===1||s==null) return s; var k=(''+s).trim(), d=I18N[k]; if(!d) return s; return (''+s).replace(k, LANG===0?d[0]:d[1]); }
+function applyI18n(){
+  if(LANG===1) return;
+  var w=document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), nodes=[], n;
+  while(n=w.nextNode()) nodes.push(n);
+  for(var i=0;i<nodes.length;i++){ var nd=nodes[i], t=nd.nodeValue.trim(); if(t && I18N[t]) nd.nodeValue=nd.nodeValue.replace(t, LANG===0?I18N[t][0]:I18N[t][1]); }
+  var attrs=['placeholder','title','aria-label'];
+  for(var a=0;a<attrs.length;a++){ var els=document.querySelectorAll('['+attrs[a]+']'); for(var e=0;e<els.length;e++){ var v=els[e].getAttribute(attrs[a]).trim(); if(I18N[v]) els[e].setAttribute(attrs[a], LANG===0?I18N[v][0]:I18N[v][1]); } }
+}
+Object.assign(I18N, {"+ Adicionar": ["+ Add", "+ Añadir"], "+ Adicionar rede": ["+ Add network", "+ Añadir red"], "Acender tela": ["Turn on screen", "Encender pantalla"], "Acesso": ["Access", "Acceso"], "Aeroporto (ICAO)": ["Airport (ICAO)", "Aeropuerto (ICAO)"], "Alcance": ["Range", "Alcance"], "Altitude": ["Altitude", "Altitud"], "Altitude máxima (pés)": ["Max altitude (ft)", "Altitud máxima (ft)"], "Altitude mínima (pés)": ["Min altitude (ft)", "Altitud mínima (ft)"], "Altímetro — mostrador de altímetro com a data": ["Altimeter — altimeter dial with the date", "Altímetro — esfera de altímetro con la fecha"], "Anel 24 h — temperatura de cada hora na borda": ["24 h ring — each hour's temperature on the edge", "Anillo 24 h — temperatura de cada hora en el borde"], "Anterior": ["Previous", "Anterior"], "Anéis de distância": ["Range rings", "Anillos de distancia"], "Apagar chave": ["Clear key", "Borrar clave"], "Apagar histórico": ["Clear history", "Borrar historial"], "Apagar tela": ["Turn off screen", "Apagar pantalla"], "Aparelho": ["Device", "Aparato"], "Aparência": ["Appearance", "Apariencia"], "Aparência do painel": ["Panel appearance", "Apariencia del panel"], "As duas (recomendado) — alterna e junta os aviões": ["Both (recommended) — alternates and merges the planes", "Ambas (recomendado) — alterna y junta los aviones"], "Atualizar": ["Refresh", "Actualizar"], "Atualizar a cada": ["Refresh every", "Actualizar cada"], "Atualizar a cada (min)": ["Refresh every (min)", "Actualizar cada (min)"], "Atualizar a cada (s)": ["Refresh every (s)", "Actualizar cada (s)"], "Atualizar a imagem": ["Refresh image", "Actualizar imagen"], "Atualizar pelo navegador": ["Update via browser", "Actualizar desde el navegador"], "Atualizações": ["Updates", "Actualizaciones"], "Aurora — dourado com louros": ["Aurora — gold with laurels", "Aurora — dorado con laureles"], "Aurora — jornal clássico": ["Aurora — classic newspaper", "Aurora — periódico clásico"], "Automática por altitude": ["Automatic by altitude", "Automática por altitud"], "Automática por categoria": ["Automatic by category", "Automática por categoría"], "Automático": ["Automatic", "Automático"], "Automático — claro de dia, escuro à noite": ["Automatic — light by day, dark at night", "Automático — claro de día, oscuro de noche"], "Automático: baixa sozinho com a tela apagada (80) ou parada (160)": ["Automatic: lowers by itself with the screen off (80) or idle (160)", "Automático: baja solo con la pantalla apagada (80) o parada (160)"], "Aviões no solo": ["Planes on the ground", "Aviones en tierra"], "Bandeira de fundo": ["Flag background", "Bandera de fondo"], "Bandeira nas bordas": ["Flag on the edges", "Bandera en los bordes"], "Bem redondos": ["Very round", "Muy redondos"], "Bitcoin (BTC)": ["Bitcoin (BTC)", "Bitcoin (BTC)"], "Bolha de céu": ["Sky bubble", "Burbuja de cielo"], "Brilho agora": ["Brightness now", "Brillo ahora"], "Brilho de dia": ["Day brightness", "Brillo de día"], "Brilho de noite": ["Night brightness", "Brillo de noche"], "Busca (cidade ou assunto)": ["Search (city or topic)", "Búsqueda (ciudad o tema)"], "Buscar": ["Search", "Buscar"], "Buscar cidade": ["Search city", "Buscar ciudad"], "Buscar cidade (ex.: São Paulo)": ["Search city (e.g. New York)", "Buscar ciudad (ej.: Madrid)"], "Bússola HSI — a rosa gira, minutos = proa": ["HSI compass — the rose turns, minutes = heading", "Brújula HSI — la rosa gira, minutos = rumbo"], "CARTO (escuro e claro, recomendado — precisa de chave)": ["CARTO (dark and light, recommended — needs a key)", "CARTO (oscuro y claro, recomendado — requiere clave)"], "Cada manchete fica (s)": ["Each headline stays (s)", "Cada titular permanece (s)"], "Caixa da temperatura": ["Temperature box", "Caja de temperatura"], "Canal 24 h — manchete, cartões e letreiro": ["24 h channel — headline, cards and ticker", "Canal 24 h — titular, tarjetas y marquesina"], "Cantos": ["Corners", "Esquinas"], "Cartão de temperatura sobre o radar (toque longo mostra/esconde)": ["Temperature card over the radar (long press shows/hides)", "Tarjeta de temperatura sobre el radar (pulsación larga muestra/oculta)"], "Cartões — próxima hora em destaque": ["Cards — next hour highlighted", "Tarjetas — próxima hora destacada"], "Celestial — roda do zodíaco dourada": ["Celestial — golden zodiac wheel", "Celestial — rueda del zodíaco dorada"], "Centralizar em": ["Center on", "Centrar en"], "Centro do radar": ["Radar center", "Centro del radar"], "Centro do radar de voos e do clima.": ["Center of the flight radar and weather.", "Centro del radar de vuelos y del clima."], "Chave da CARTO": ["CARTO key", "Clave de CARTO"], "Claro": ["Light", "Claro"], "Clima": ["Weather", "Clima"], "Clássico — ponteiros dourados com o clima": ["Classic — gold hands with the weather", "Clásico — manecillas doradas con el clima"], "Cockpit — instrumento de avião (UTC, vento, QNH)": ["Cockpit — aircraft instrument (UTC, wind, QNH)", "Cockpit — instrumento de avión (UTC, viento, QNH)"], "Colunas — mínima a máxima": ["Columns — min to max", "Columnas — mínima a máxima"], "Começa às": ["Starts at", "Comienza a las"], "Configurações": ["Settings", "Configuración"], "Constelação — estrelas do signo": ["Constellation — the sign's stars", "Constelación — estrellas del signo"], "Consultar a cada (s)": ["Poll every (s)", "Consultar cada (s)"], "Continente": ["Continent", "Continente"], "Controle remoto": ["Remote control", "Control remoto"], "Copiar": ["Copy", "Copiar"], "Cor de destaque": ["Accent color", "Color de acento"], "Cor dos aviões": ["Plane color", "Color de los aviones"], "Cor única": ["Single color", "Color único"], "Cor única (escolher)": ["Single color (choose)", "Color único (elegir)"], "Cotações": ["Quotes", "Cotizaciones"], "Curva — gráfico da temperatura (original)": ["Curve — temperature graph (original)", "Curva — gráfico de temperatura (original)"], "Código ICAO": ["ICAO code", "Código ICAO"], "Cópia das configurações": ["Settings backup", "Copia de configuración"], "Desempenho": ["Performance", "Rendimiento"], "Detalhes": ["Details", "Detalles"], "Diagnóstico": ["Diagnostics", "Diagnóstico"], "Distância": ["Distance", "Distancia"], "Dogecoin (DOGE)": ["Dogecoin (DOGE)", "Dogecoin (DOGE)"], "Dourado — lista com barras (original)": ["Gold — list with bars (original)", "Dorado — lista con barras (original)"], "Dólar (US$)": ["Dollar (US$)", "Dólar (US$)"], "Dólar (USD)": ["Dollar (USD)", "Dólar (USD)"], "Dólar australiano": ["Australian dollar", "Dólar australiano"], "Dólar australiano (AUD)": ["Australian dollar (AUD)", "Dólar australiano (AUD)"], "Dólar canadense": ["Canadian dollar", "Dólar canadiense"], "Dólar canadense (CAD)": ["Canadian dollar (CAD)", "Dólar canadiense (CAD)"], "Endereço do PC": ["PC address", "Dirección del PC"], "Endereço do hotspot": ["Hotspot address", "Dirección del hotspot"], "Enviar": ["Send", "Enviar"], "Enviar pacote": ["Send package", "Enviar paquete"], "Escolha o arquivo": ["Choose the file", "Elige el archivo"], "Escuro": ["Dark", "Oscuro"], "Estado (~800 km)": ["State (~800 km)", "Estado (~800 km)"], "Estilo": ["Style", "Estilo"], "Ethereum (ETH)": ["Ethereum (ETH)", "Ethereum (ETH)"], "Euro (EUR)": ["Euro (EUR)", "Euro (EUR)"], "Euro (€)": ["Euro (€)", "Euro (€)"], "Ex.: Jantar pronto!": ["E.g. Dinner is ready!", "Ej.: ¡La cena está lista!"], "Ex.: São Paulo": ["E.g. New York", "Ej.: Madrid"], "Exibição": ["Display", "Visualización"], "Exportar configurações": ["Export settings", "Exportar configuración"], "Faixa diagonal com a bandeira": ["Diagonal stripe with the flag", "Franja diagonal con la bandera"], "Faixa do céu — a cor muda com as horas": ["Sky band — the color changes with the hours", "Franja del cielo — el color cambia con las horas"], "Fechar": ["Close", "Cerrar"], "Fechar aviso": ["Close notice", "Cerrar aviso"], "Fernando de Noronha (UTC−2)": ["Fernando de Noronha (UTC−2)", "Fernando de Noronha (UTC−2)"], "Firmware PV2KSM ·": ["Firmware PV2KSM ·", "Firmware PV2KSM ·"], "Fonte dos dados": ["Data source", "Fuente de datos"], "Fonte dos mapas": ["Map source", "Fuente de los mapas"], "Fotos": ["Photos", "Fotos"], "Franco suíço": ["Swiss franc", "Franco suizo"], "Franco suíço (CHF)": ["Swiss franc (CHF)", "Franco suizo (CHF)"], "Fuso POSIX": ["POSIX timezone", "Zona horaria POSIX"], "Fuso horário": ["Time zone", "Zona horaria"], "G — grande": ["L — large", "G — grande"], "GG — bem grande": ["XL — very large", "XG — muy grande"], "Geral": ["General", "General"], "Gerenciador de Tarefas — 4 cartões": ["Task Manager — 4 cards", "Administrador de tareas — 4 tarjetas"], "Grande": ["Large", "Grande"], "Gráfico ao vivo — último minuto": ["Live graph — last minute", "Gráfico en vivo — último minuto"], "Hora": ["Time", "Hora"], "Horizonte artificial — céu e terra balançando": ["Artificial horizon — sky and ground swaying", "Horizonte artificial — cielo y tierra balanceándose"], "Horóscopo": ["Horoscope", "Horóscopo"], "ID DMR": ["DMR ID", "ID DMR"], "ID DMR (hotspot)": ["DMR ID (hotspot)", "ID DMR (hotspot)"], "Idioma / Language / Idioma": ["Idioma / Language / Idioma", "Idioma / Language / Idioma"], "Iene": ["Yen", "Yen"], "Iene (JPY)": ["Yen (JPY)", "Yen (JPY)"], "Importar arquivo…": ["Import file…", "Importar archivo…"], "Indicativo": ["Callsign", "Indicativo"], "Início": ["Home", "Inicio"], "Ir para": ["Go to", "Ir a"], "LCD retrô": ["Retro LCD", "LCD retro"], "Latitude": ["Latitude", "Latitud"], "Libra (GBP)": ["Pound (GBP)", "Libra (GBP)"], "Libra (£)": ["Pound (£)", "Libra (£)"], "Limpar cache do mapa": ["Clear map cache", "Borrar caché del mapa"], "Litecoin (LTC)": ["Litecoin (LTC)", "Litecoin (LTC)"], "Local do clima": ["Weather location", "Lugar del clima"], "Localização": ["Location", "Ubicación"], "Longitude": ["Longitude", "Longitud"], "M — normal": ["M — normal", "M — normal"], "Mais brilho": ["More brightness", "Más brillo"], "Mapa claro (original)": ["Light map (original)", "Mapa claro (original)"], "Mapas": ["Maps", "Mapas"], "Memória": ["Memory", "Memoria"], "Menor": ["Smaller", "Menor"], "Menos brilho": ["Less brightness", "Menos brillo"], "Mensagem na tela": ["On-screen message", "Mensaje en pantalla"], "Metros (m)": ["Meters (m)", "Metros (m)"], "Milhas (mi)": ["Miles (mi)", "Millas (mi)"], "Milhas náuticas (nm)": ["Nautical miles (nm)", "Millas náuticas (nm)"], "Minha localização (Geral)": ["My location (General)", "Mi ubicación (General)"], "Minimal — hora grande com o clima ao lado": ["Minimal — big time with the weather beside it", "Minimal — hora grande con el clima al lado"], "Modelo (sem altitude)": ["Model (no altitude)", "Modelo (sin altitud)"], "Modo": ["Mode", "Modo"], "Modo recuperação": ["Recovery mode", "Modo de recuperación"], "Modo seguro": ["Safe mode", "Modo seguro"], "Moeda local": ["Local currency", "Moneda local"], "Mostrar amor, trabalho e saúde (estrelas)": ["Show love, work and health (stars)", "Mostrar amor, trabajo y salud (estrellas)"], "Mostrar mensagem": ["Show message", "Mostrar mensaje"], "Mostrar no radar:": ["Show on the radar:", "Mostrar en el radar:"], "Mostrar os segundos no anel do relógio": ["Show seconds on the clock ring", "Mostrar los segundos en el anillo del reloj"], "Máximo de aviões": ["Max planes", "Máximo de aviones"], "Médios": ["Medium", "Medianos"], "Mínimo — só o número": ["Minimal — just the number", "Mínimo — solo el número"], "Nenhum": ["None", "Ninguno"], "Nenhum reinício anormal registrado.": ["No abnormal restart recorded.", "Ningún reinicio anormal registrado."], "Neon térmico (cor muda com a temperatura)": ["Thermal neon (color changes with temperature)", "Neón térmico (el color cambia con la temperatura)"], "Nome do lugar": ["Place name", "Nombre del lugar"], "Nome e cidade (RadioID.net)": ["Name and city (RadioID.net)", "Nombre y ciudad (RadioID.net)"], "Nome na rede": ["Network name", "Nombre en la red"], "Normal": ["Normal", "Normal"], "Notícias": ["News", "Noticias"], "Nova senha": ["New password", "Nueva contraseña"], "Não": ["No", "No"], "Nós (kt)": ["Knots (kt)", "Nudos (kt)"], "O aparelho conecta na rede salva com o sinal mais forte. Deixe a senha em branco para manter a atual. Redes ocultas: deixe-as no topo da lista.": ["The device connects to the saved network with the strongest signal. Leave the password blank to keep the current one. Hidden networks: keep them at the top of the list.", "El aparato se conecta a la red guardada con la señal más fuerte. Deja la contraseña en blanco para mantener la actual. Redes ocultas: déjalas al principio de la lista."], "O arquivo tem senhas": ["The file contains passwords", "El archivo contiene contraseñas"], "O que mostrar (até 10)": ["What to show (up to 10)", "Qué mostrar (hasta 10)"], "OpenStreetMap (sem chave)": ["OpenStreetMap (no key)", "OpenStreetMap (sin clave)"], "Ordem aleatória": ["Random order", "Orden aleatorio"], "Ordem original": ["Original order", "Orden original"], "Outro (POSIX)…": ["Other (POSIX)…", "Otro (POSIX)…"], "Outro código…": ["Other code…", "Otro código…"], "P — pequeno": ["S — small", "P — pequeño"], "PC (Windows)": ["PC (Windows)", "PC (Windows)"], "Pacote visual": ["Visual package", "Paquete visual"], "Padrão de fábrica": ["Factory reset", "Restablecer de fábrica"], "Painel de aviação (METAR)": ["Aviation panel (METAR)", "Panel de aviación (METAR)"], "País (~1600 km)": ["Country (~1600 km)", "País (~1600 km)"], "Pelo nome funciona quando a rede do Windows está como": ["By name works when the Windows network is set to", "Por nombre funciona cuando la red de Windows está como"], "Pergaminho — papel antigo e tinta sépia": ["Parchment — old paper and sepia ink", "Pergamino — papel antiguo y tinta sepia"], "Peso argentino": ["Argentine peso", "Peso argentino"], "Peso argentino (ARS)": ["Argentine peso (ARS)", "Peso argentino (ARS)"], "Pixel art 8-bit": ["8-bit pixel art", "Pixel art 8-bit"], "Plantão — sempre urgente": ["Breaking — always urgent", "De última hora — siempre urgente"], "Plaquinha — lista toda": ["Plate — whole list", "Placa — lista completa"], "Ponteiros": ["Hands", "Manecillas"], "Porta-retrato": ["Photo frame", "Marco de fotos"], "Privada": ["Private", "Privada"], "Processador": ["Processor", "Procesador"], "Procurar redes": ["Scan networks", "Buscar redes"], "Próximas horas": ["Next hours", "Próximas horas"], "Próximo": ["Next", "Siguiente"], "Próximos dias": ["Next days", "Próximos días"], "Pés (ft)": ["Feet (ft)", "Pies (ft)"], "Quadros da animação": ["Animation frames", "Cuadros de la animación"], "Quilômetros (km)": ["Kilometers (km)", "Kilómetros (km)"], "RADAR 360": ["RADAR 360", "RADAR 360"], "RGB gamer — anel colorido girando": ["RGB gamer — spinning colored ring", "RGB gamer — anillo de color girando"], "Radar 360": ["Radar 360", "Radar 360"], "Radar de chuva (como o original)": ["Rain radar (like the original)", "Radar de lluvia (como el original)"], "Radar escuro (original)": ["Dark radar (original)", "Radar oscuro (original)"], "Raio (km)": ["Radius (km)", "Radio (km)"], "Real (R$)": ["Real (R$)", "Real (R$)"], "Realista — o céu acompanha o clima e a hora": ["Realistic — the sky follows the weather and time", "Realista — el cielo sigue el clima y la hora"], "Recursos": ["Features", "Funciones"], "Rede": ["Network", "Red"], "Região (~400 km)": ["Region (~400 km)", "Región (~400 km)"], "Reiniciar": ["Restart", "Reiniciar"], "Relógio": ["Clock", "Reloj"], "Relógio de bolso — esmalte creme e ponteiros azuis": ["Pocket watch — cream enamel and blue hands", "Reloj de bolsillo — esmalte crema y manecillas azules"], "Relógio sobre a foto": ["Clock over the photo", "Reloj sobre la foto"], "Retos": ["Straight", "Rectos"], "Rodapé — hora e clima embaixo": ["Footer — time and weather at the bottom", "Pie — hora y clima abajo"], "Rodízio — uma por vez, com gráfico": ["Rotation — one at a time, with a graph", "Rotación — una a la vez, con gráfico"], "Rodízio: segundos por item": ["Rotation: seconds per item", "Rotación: segundos por ítem"], "Rosa dos ventos": ["Compass rose", "Rosa de los vientos"], "Rotação": ["Rotation", "Rotación"], "Salva num arquivo as redes Wi-Fi, senha do painel, chave da CARTO, hora, brilho, telas, temas e ordem. As fotos não entram.": ["Saves the Wi-Fi networks, panel password, CARTO key, time, brightness, screens, themes and order to a file. Photos are not included.", "Guarda en un archivo las redes Wi-Fi, la contraseña del panel, la clave de CARTO, la hora, el brillo, las pantallas, los temas y el orden. Las fotos no se incluyen."], "Salvar": ["Save", "Guardar"], "Salvar chave": ["Save key", "Guardar clave"], "Salvar configurações": ["Save settings", "Guardar configuración"], "Salvar este brilho": ["Save this brightness", "Guardar este brillo"], "Sem mapa": ["No map", "Sin mapa"], "Servidor NTP principal": ["Primary NTP server", "Servidor NTP principal"], "Servidor NTP reserva": ["Backup NTP server", "Servidor NTP de reserva"], "Seta (original)": ["Arrow (original)", "Flecha (original)"], "Silhueta do tipo": ["Type silhouette", "Silueta del tipo"], "Simples": ["Simple", "Simple"], "Simples (primeira versão)": ["Simple (first version)", "Simple (primera versión)"], "Sincronizar agora": ["Sync now", "Sincronizar ahora"], "Sistema": ["System", "Sistema"], "Solana (SOL)": ["Solana (SOL)", "Solana (SOL)"], "Sonar sem mapa": ["Sonar without map", "Sonar sin mapa"], "Status": ["Status", "Estado"], "Só no botão": ["Button only", "Solo con el botón"], "Tamanho do texto": ["Text size", "Tamaño del texto"], "Tamanho dos aviões e textos": ["Size of planes and text", "Tamaño de los aviones y textos"], "Tela": ["Screen", "Pantalla"], "Tela ao vivo": ["Live screen", "Pantalla en vivo"], "Tela turbo (fio da tela a 80 MHz, dobro de quadros por segundo)": ["Turbo screen (display bus at 80 MHz, double the frames per second)", "Pantalla turbo (bus de pantalla a 80 MHz, el doble de cuadros por segundo)"], "Telas": ["Screens", "Pantallas"], "Telas e ordem de exibição": ["Screens and display order", "Pantallas y orden de visualización"], "Telejornal — tarja e letreiro (GC)": ["Newscast — banner and ticker (GC)", "Telediario — banda y marquesina (GC)"], "Teletexto — TV retrô": ["Teletext — retro TV", "Teletexto — TV retro"], "Tema": ["Theme", "Tema"], "Tempo agora": ["Weather now", "Tiempo ahora"], "Tempo de desenho por tela (média das últimas vezes em que ela apareceu):": ["Draw time per screen (average of the last times it appeared):", "Tiempo de dibujo por pantalla (promedio de las últimas veces que apareció):"], "Termina às": ["Ends at", "Termina a las"], "Termômetro": ["Thermometer", "Termómetro"], "Tipos de aeronave": ["Aircraft types", "Tipos de aeronave"], "Transição suave": ["Smooth transition", "Transición suave"], "Trocar a cada (s)": ["Switch every (s)", "Cambiar cada (s)"], "Trocar de signo a cada": ["Switch sign every", "Cambiar de signo cada"], "Trocar de tela sozinho": ["Switch screens automatically", "Cambiar de pantalla automáticamente"], "Trocar usuário e senha": ["Change user and password", "Cambiar usuario y contraseña"], "UTC": ["UTC", "UTC"], "Usar brilho de noite no horário abaixo": ["Use night brightness during the time below", "Usar brillo de noche en el horario de abajo"], "Usar um local diferente do radar de voos": ["Use a different location from the flight radar", "Usar un lugar diferente al del radar de vuelos"], "Usuário do painel": ["Panel user", "Usuario del panel"], "Varredura do radar": ["Radar sweep", "Barrido del radar"], "Velocidade": ["Speed", "Velocidad"], "Velocidade (ms por quadro)": ["Speed (ms per frame)", "Velocidad (ms por cuadro)"], "Ver detalhes": ["View details", "Ver detalles"], "Verificar": ["Check", "Verificar"], "Versão instalada": ["Installed version", "Versión instalada"], "Vetor de rumo": ["Heading vector", "Vector de rumbo"], "Vidro fosco": ["Frosted glass", "Vidrio esmerilado"], "Visual": ["Visual", "Visual"], "Voltar ao padrão": ["Reset to default", "Volver al valor por defecto"], "Voos": ["Flights", "Vuelos"], "Voos (ADS-B)": ["Flights (ADS-B)", "Vuelos (ADS-B)"], "Wi-Fi · redes salvas": ["Wi-Fi · saved networks", "Wi-Fi · redes guardadas"], "XRP": ["XRP", "XRP"], "Yuan (CNY)": ["Yuan (CNY)", "Yuan (CNY)"], "abrir controle rápido ›": ["open quick control ›", "abrir control rápido ›"], "adsb.fi (como o original)": ["adsb.fi (like the original)", "adsb.fi (como el original)"], "adsb.lol": ["adsb.lol", "adsb.lol"], "anterior": ["previous", "anterior"], "brilho +": ["brightness +", "brillo +"], "brilho −": ["brightness −", "brillo −"], "cole aqui a chave": ["paste the key here", "pega aquí la clave"], "detalhes": ["details", "detalles"], "início": ["home", "inicio"], "mph": ["mph", "mph"], "mínimo 6 caracteres": ["minimum 6 characters", "mínimo 6 caracteres"], "pausar troca": ["pause switching", "pausar el cambio"], "próximo": ["next", "siguiente"], "radar": ["radar", "radar"], "tela on/off": ["screen on/off", "pantalla on/off"], "Ícone": ["Icon", "Icono"], "Google Notícias (Brasil). Escolha os temas:": ["Google News. Pick the topics:", "Google Noticias. Elige los temas:"], "Acre (UTC−5)": ["Acre (UTC−5)", "Acre (UTC−5)"], "Amazonas, MT, MS, RO, RR (UTC−4)": ["Amazonas, MT, MS, RO, RR (UTC−4)", "Amazonas, MT, MS, RO, RR (UTC−4)"], "Brasília (UTC−3)": ["Brasília (UTC−3)", "Brasília (UTC−3)"], "A cada 1 min": ["Every 1 min", "Cada 1 min"], "A cada 15 s": ["Every 15 s", "Cada 15 s"], "A cada 30 s": ["Every 30 s", "Cada 30 s"], "A cada 5 min": ["Every 5 min", "Cada 5 min"], "1 hora": ["1 hour", "1 hora"], "1 min": ["1 min", "1 min"], "15 min": ["15 min", "15 min"], "2 horas": ["2 hours", "2 horas"], "30 min": ["30 min", "30 min"], "160 MHz — equilíbrio": ["160 MHz — balanced", "160 MHz — equilibrio"], "240 MHz — mais fluido (padrão)": ["240 MHz — smoother (default)", "240 MHz — más fluido (por defecto)"], "80 MHz — economia": ["80 MHz — power saving", "80 MHz — ahorro"], "English": ["English", "English"], "Español": ["Español", "Español"], "Português": ["Português", "Português"], "Plantão automático: manchetes com “urgente”, “alerta”, “Defesa Civil”… aparecem com a tarja vermelha": ["Auto breaking: headlines with \"urgent\", \"alert\", \"Civil Defense\"… appear with the red banner", "Última hora automática: titulares con \"urgente\", \"alerta\", \"Protección Civil\"… aparecen con la banda roja"], "Signos para exibir (com mais de um, eles se alternam; toque longo passa para o próximo):": ["Signs to show (with more than one, they alternate; long press goes to the next):", "Signos a mostrar (con más de uno, se alternan; pulsación larga pasa al siguiente):"], "Toque longo abre os detalhes do voo (modelo, rota, altitude…); toque curto passa para o próximo avião; toque duplo volta ao relógio. Rotas: adsbdb.com.": ["Long press opens the flight details (model, route, altitude…); short press goes to the next plane; double tap returns to the clock. Routes: adsbdb.com.", "La pulsación larga abre los detalles del vuelo (modelo, ruta, altitud…); la pulsación corta pasa al siguiente avión; doble toque vuelve al reloj. Rutas: adsbdb.com."], "Toque longo mostra o QR code da notícia para abrir no celular.": ["Long press shows the news QR code to open on your phone.", "La pulsación larga muestra el código QR de la noticia para abrirla en el celular."], "Toque longo pausa / continua.": ["Long press pauses / resumes.", "La pulsación larga pausa / reanuda."], "Toque no mapa para mudar a posição. Mapa © OpenStreetMap.": ["Tap the map to change the position. Map © OpenStreetMap.", "Toca el mapa para cambiar la posición. Mapa © OpenStreetMap."], "Toque numa rede encontrada para adicioná-la. Mudanças no Wi-Fi reiniciam o aparelho.": ["Tap a found network to add it. Wi-Fi changes restart the device.", "Toca una red encontrada para añadirla. Los cambios de Wi-Fi reinician el aparato."], "Lê a tabela \"Last Heard\" do dashboard do Pi-Star ou WPSD pela rede local. Toque longo alterna entre destaque e lista.": ["Reads the \"Last Heard\" table from the Pi-Star or WPSD dashboard over the local network. Long press toggles between highlight and list.", "Lee la tabla \"Last Heard\" del panel de Pi-Star o WPSD por la red local. La pulsación larga alterna entre destaque y lista."], "◀ ▶ trocam de tela. Dentro dos detalhes do voo, das notícias, do porta-retrato e do horóscopo, trocam de avião, manchete, foto ou signo. OK abre e fecha os detalhes.": ["◀ ▶ switch screens. Inside flight details, news, the photo frame and the horoscope, they switch plane, headline, photo or sign. OK opens and closes the details.", "◀ ▶ cambian de pantalla. Dentro de los detalles del vuelo, las noticias, el marco de fotos y el horóscopo, cambian de avión, titular, foto o signo. OK abre y cierra los detalles."], "Ligue as telas que devem aparecer e use ▲ ▼ para mudar a ordem (botão e troca automática). O relógio fica sempre ligado.": ["Turn on the screens that should appear and use ▲ ▼ to change the order (button and auto-switch). The clock is always on.", "Activa las pantallas que deben aparecer y usa ▲ ▼ para cambiar el orden (botón y cambio automático). El reloj está siempre activo."], "As telas “Próximas horas” e “Próximos dias” ligam em Recursos → Geral.": ["The \"Next hours\" and \"Next days\" screens are enabled in Features → General.", "Las pantallas \"Próximas horas\" y \"Próximos días\" se activan en Funciones → General."], "As fotos são recortadas e reduzidas para 360×360 no navegador, com qualidade alta, antes de enviar. O círculo mostra o que aparece na tela.": ["Photos are cropped and resized to 360×360 in the browser, at high quality, before sending. The circle shows what appears on the screen.", "Las fotos se recortan y reducen a 360×360 en el navegador, con alta calidad, antes de enviarlas. El círculo muestra lo que aparece en la pantalla."], "A previsão é montada no próprio aparelho, em português, e muda todo dia para cada signo (é para diversão). A “Lua em …” é calculada de verdade.": ["The forecast is built on the device itself and changes every day for each sign (just for fun). The \"Moon in …\" is calculated for real.", "La predicción se arma en el propio aparato y cambia cada día para cada signo (es por diversión). La \"Luna en …\" se calcula de verdad."], "A tela recebe os dados por um fio só: a 40 MHz um quadro inteiro leva ~52 ms (até ~19 quadros/s); a 80 MHz, ~26 ms. Só as linhas que mudaram são enviadas.": ["The screen receives data over a single bus: at 40 MHz a whole frame takes ~52 ms (up to ~19 fps); at 80 MHz, ~26 ms. Only the changed lines are sent.", "La pantalla recibe los datos por un solo bus: a 40 MHz un cuadro entero tarda ~52 ms (hasta ~19 cuadros/s); a 80 MHz, ~26 ms. Solo se envían las líneas que cambiaron."], "Aviso do clima (ex.: “Chuva em 15 min”) aparece por alguns segundos": ["Weather alert (e.g. \"Rain in 15 min\") appears for a few seconds", "Aviso del clima (ej.: \"Lluvia en 15 min\") aparece por unos segundos"], "A CARTO passou a exigir uma chave, que é grátis: peça em": ["CARTO now requires a key, which is free: request it at", "CARTO ahora exige una clave, que es gratis: pídela en"], "No realista há sol, nuvens, chuva caindo, raios, neblina, noite com lua na fase certa, amanhecer e pôr do sol.": ["In realistic mode there is sun, clouds, falling rain, lightning, fog, night with the moon in the right phase, dawn and sunset.", "En el modo realista hay sol, nubes, lluvia cayendo, rayos, niebla, noche con la luna en la fase correcta, amanecer y atardecer."], "Modo recuperação: um sistema mínimo, separado, só para enviar firmware e pacote pelo navegador. Também abre segurando o botão do aparelho por ~5 s ao ligar.": ["Recovery mode: a minimal, separate system just for sending firmware and the package via the browser. It also opens by holding the device button for ~5 s at power-on.", "Modo de recuperación: un sistema mínimo, separado, solo para enviar firmware y el paquete desde el navegador. También se abre manteniendo el botón del aparato ~5 s al encender."], "O padrão de fábrica apaga redes Wi-Fi, senha e preferências. O aparelho volta no modo configuração (rede": ["Factory reset erases Wi-Fi networks, password and preferences. The device returns to setup mode (network", "El restablecimiento de fábrica borra las redes Wi-Fi, la contraseña y las preferencias. El aparato vuelve al modo configuración (red"], "Fontes, fundos, silhuetas, bandeiras e lua dos temas ficam numa parte separada da memória. Só precisa enviar quando uma versão nova pedir (arquivo": ["Theme fonts, backgrounds, silhouettes, flags and moon live in a separate part of memory. You only need to send it when a new version asks (file", "Las fuentes, fondos, siluetas, banderas y luna de los temas están en una parte separada de la memoria. Solo hay que enviarlo cuando una versión nueva lo pida (archivo"], "Vale só para este navegador (celular e PC podem ficar diferentes). Não muda nada no aparelho.": ["Applies to this browser only (phone and PC can differ). It changes nothing on the device.", "Solo vale para este navegador (celular y PC pueden quedar diferentes). No cambia nada en el aparato."]});
+Object.assign(I18N, {"Widebody (787, 777, A330, A350)": ["Widebody (787, 777, A330, A350)", "Fuselaje ancho (787, 777, A330, A350)"], "Narrowbody (A320, 737)": ["Narrowbody (A320, 737)", "Fuselaje estrecho (A320, 737)"], "Regional (E-Jets, CRJ)": ["Regional (E-Jets, CRJ)", "Regional (E-Jets, CRJ)"], "Turboélice (ATR, Caravan)": ["Turboprop (ATR, Caravan)", "Turbohélice (ATR, Caravan)"], "Executivo (Citation, Phenom)": ["Business jet (Citation, Phenom)", "Ejecutivo (Citation, Phenom)"], "Leve (Cessna, Piper)": ["Light (Cessna, Piper)", "Ligero (Cessna, Piper)"], "Helicóptero": ["Helicopter", "Helicóptero"], "Áries": ["Aries", "Aries"], "Touro": ["Taurus", "Tauro"], "Gêmeos": ["Gemini", "Géminis"], "Câncer": ["Cancer", "Cáncer"], "Leão": ["Leo", "Leo"], "Virgem": ["Virgo", "Virgo"], "Libra": ["Libra", "Libra"], "Escorpião": ["Scorpio", "Escorpio"], "Sagitário": ["Sagittarius", "Sagitario"], "Capricórnio": ["Capricorn", "Capricornio"], "Aquário": ["Aquarius", "Acuario"], "Peixes": ["Pisces", "Piscis"], "Principais": ["Top", "Principales"], "Brasil": ["Brazil", "Brasil"], "Mundo": ["World", "Mundo"], "Negócios": ["Business", "Negocios"], "Tecnologia": ["Technology", "Tecnología"], "Entretenimento": ["Entertainment", "Entretenimiento"], "Esportes": ["Sports", "Deportes"], "Ciência": ["Science", "Ciencia"], "Saúde": ["Health", "Salud"]});
+Object.assign(I18N, {"Sem rede": ["No network", "Sin red"], "Hora ainda não sincronizada": ["Time not synced yet", "Hora aún no sincronizada"], "em teste (confirma após 60 s com Wi-Fi)": ["on trial (confirms after 60 s with Wi-Fi)", "en prueba (confirma tras 60 s con Wi-Fi)"], "Nenhum reinício anormal desde que ligou.": ["No abnormal restart since power-on.", "Ningún reinicio anormal desde que encendió."], "Nenhum registro.": ["No records.", "Sin registros."], "Digite 4 letras (ex.: SBSJ, SBGR, SBKP)": ["Enter 4 letters (e.g. KJFK, KLAX, EGLL)", "Escribe 4 letras (ej.: LEMD, LEBL, KJFK)"], "Preparando ": ["Preparing ", "Preparando "], " de ": [" of ", " de "], "Menta": ["Mint", "Menta"], "Azul": ["Blue", "Azul"], "Roxo": ["Purple", "Morado"], "Laranja": ["Orange", "Naranja"], "Rosa": ["Pink", "Rosa"], "Dourado": ["Gold", "Dorado"]});
+Object.assign(I18N, {"A senha precisa de 6 caracteres ou mais": ["The password needs 6 characters or more", "La contraseña necesita 6 caracteres o más"], "Apagar Wi-Fi, senha e preferências e voltar ao padrão de fábrica?": ["Erase Wi-Fi, password and preferences and reset to factory?", "¿Borrar Wi-Fi, contraseña y preferencias y volver a fábrica?"], "Apagar esta foto?": ["Delete this photo?", "¿Eliminar esta foto?"], "Aparência padrão": ["Default appearance", "Apariencia por defecto"], "Arquivo baixado": ["File downloaded", "Archivo descargado"], "Arquivo inválido": ["Invalid file", "Archivo inválido"], "Aviso escondido neste navegador": ["Notice hidden in this browser", "Aviso ocultado en este navegador"], "Brilho salvo": ["Brightness saved", "Brillo guardado"], "Busca indisponível (sem internet no navegador?)": ["Search unavailable (no internet in the browser?)", "Búsqueda no disponible (¿sin internet en el navegador?)"], "Chave apagada: usando OpenStreetMap": ["Key cleared: using OpenStreetMap", "Clave borrada: usando OpenStreetMap"], "Chave salva: os mapas vão ser baixados de novo": ["Key saved: maps will be downloaded again", "Clave guardada: los mapas se descargarán de nuevo"], "Cole a chave primeiro": ["Paste the key first", "Pega la clave primero"], "Copiado": ["Copied", "Copiado"], "Código da moeda ou cripto (ex.: MXN, ADA)": ["Currency or crypto code (e.g. MXN, ADA)", "Código de moneda o cripto (ej.: MXN, ADA)"], "Erro ao ler configurações": ["Error reading settings", "Error al leer la configuración"], "Erro: ": ["Error: ", "Error: "], "Escolha as fotos": ["Choose the photos", "Elige las fotos"], "Escolha o arquivo .bin": ["Choose the .bin file", "Elige el archivo .bin"], "Essa já é a moeda local": ["That's already the local currency", "Esa ya es la moneda local"], "Esse arquivo não é uma cópia do Radar 360": ["This file is not a Radar 360 backup", "Este archivo no es una copia del Radar 360"], "Já está na lista": ["Already in the list", "Ya está en la lista"], "Limite de ": ["Limit of ", "Límite de "], "Limite de 10": ["Limit of 10", "Límite de 10"], "Nada encontrado": ["Nothing found", "Nada encontrado"], "Reiniciar no modo recuperação?\nO aparelho mostra na tela o endereço da página de recuperação.": ["Restart in recovery mode?\nThe device shows the recovery page address on screen.", "¿Reiniciar en modo de recuperación?\nEl aparato muestra en pantalla la dirección de la página de recuperación."], "Reiniciar o aparelho?": ["Restart the device?", "¿Reiniciar el aparato?"], "Restaurar as configurações deste arquivo": ["Restore the settings from this file", "Restaurar la configuración de este archivo"], "Salvo. Reiniciando… abra ": ["Saved. Restarting… open ", "Guardado. Reiniciando… abre "], "Selecione o texto e copie": ["Select the text and copy", "Selecciona el texto y copia"], "Telas salvas": ["Screens saved", "Pantallas guardadas"], "Toque em Salvar para aplicar": ["Tap Save to apply", "Toca Guardar para aplicar"]});
+Object.assign(I18N, {"(Configurações → Rede → Propriedades). Se não achar, use o IP; para o IP não mudar, reserve-o no roteador.": ["(Settings → Network → Properties). If you can't find it, use the IP; to keep the IP fixed, reserve it in the router.", "(Configuración → Red → Propiedades). Si no lo encuentras, usa la IP; para que la IP no cambie, resérvala en el router."], "(grátis) e ligue": ["(free) and enable", "(gratis) y activa"], "(porta 8085, sem senha). Na primeira vez, o Windows pergunta se libera a rede: aceite. Para não esquecer, marque também": ["(port 8085, no password). The first time, Windows asks whether to allow the network: accept. So you don't forget, also check", "(puerto 8085, sin contraseña). La primera vez, Windows pregunta si permite la red: acepta. Para no olvidar, marca también"], ". Depois ligue a tela \"PC\" em Telas.": [". Then enable the \"PC\" screen in Screens.", ". Luego activa la pantalla \"PC\" en Pantallas."], ": guarde em lugar seguro.": [": keep it somewhere safe.", ": guárdalo en un lugar seguro."], ": o aparelho reiniciou várias vezes seguidas logo ao ligar e voltou para as telas simples. Veja": [": the device restarted several times in a row at power-on and fell back to the simple screens. See", ": el aparato se reinició varias veces seguidas al encender y volvió a las pantallas simples. Mira"], ": os temas estão usando as fontes simples. Envie o arquivo": [": the themes are using the simple fonts. Send the file", ": los temas están usando las fuentes simples. Envía el archivo"], "Ao ligar e salvar, o aparelho mostra uma tela de teste por 20 s. Se a imagem estiver perfeita, aperte o botão do aparelho para manter. Sem o botão, volta sozinho para 40 MHz.": ["When enabled and saved, the device shows a test screen for 20 s. If the image is perfect, press the device button to keep it. Without the button, it returns to 40 MHz by itself.", "Al activar y guardar, el aparato muestra una pantalla de prueba por 20 s. Si la imagen está perfecta, pulsa el botón del aparato para mantenerla. Sin el botón, vuelve solo a 40 MHz."], "Dados: AwesomeAPI (economia.awesomeapi.com.br), grátis e sem cadastro; os valores podem ter até 1 minuto de atraso. Depois ligue a tela \"Cotações\" em Telas.": ["Data: AwesomeAPI (economia.awesomeapi.com.br), free and no sign-up; values may be up to 1 minute delayed. Then enable the \"Quotes\" screen in Screens.", "Datos: AwesomeAPI (economia.awesomeapi.com.br), gratis y sin registro; los valores pueden tener hasta 1 minuto de retraso. Luego activa la pantalla \"Cotizaciones\" en Pantallas."], "Dados: RainViewer (radar) e Open-Meteo (previsão), atualizados a cada 10–15 min.": ["Data: RainViewer (radar) and Open-Meteo (forecast), updated every 10–15 min.", "Datos: RainViewer (radar) y Open-Meteo (pronóstico), actualizados cada 10–15 min."], "Feed RSS/Atom próprio (opcional)": ["Custom RSS/Atom feed (optional)", "Feed RSS/Atom propio (opcional)"], "No PC, abra o": ["On the PC, open", "En el PC, abre"], "Sistema → Atualizações": ["System → Updates", "Sistema → Actualizaciones"], "Sistema → Configurações → Acesso": ["System → Settings → Access", "Sistema → Configuración → Acceso"], "Status → Diagnóstico": ["Status → Diagnostics", "Estado → Diagnóstico"], "de atualização do Radar360. Mantenha o aparelho ligado; ele reinicia sozinho no fim.": ["to update the Radar360. Keep the device on; it restarts by itself at the end.", "de actualización del Radar360. Mantén el aparato encendido; se reinicia solo al final."], "e mande para análise. Ao reiniciar normalmente, tudo volta ao que estava salvo.": ["and send it for analysis. On a normal restart, everything returns to what was saved.", "y envíalo para análisis. Al reiniciar normalmente, todo vuelve a lo que estaba guardado."], "e marque uso pessoal (não comercial). Sem chave, o aparelho usa o OpenStreetMap. No estilo escuro com OpenStreetMap o mapa é escurecido.": ["and mark personal (non-commercial) use. Without a key, the device uses OpenStreetMap. In the dark style with OpenStreetMap the map is darkened.", "y marca uso personal (no comercial). Sin clave, el aparato usa OpenStreetMap. En el estilo oscuro con OpenStreetMap el mapa se oscurece."], "⚠️ A senha do painel ainda é a de fábrica. Troque em": ["⚠️ The panel password is still the factory default. Change it in", "⚠️ La contraseña del panel sigue siendo la de fábrica. Cámbiala en"]});
+</script>
+<script>
+const $=id=>document.getElementById(id);
+let toastT;
+function toast(t,ms=2600){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>e.style.display='none',ms)}
+async function api(path,body){
+  const o=body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+  const r=await fetch(path,o);let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok||j.ok===false)throw new Error(j.message||('HTTP '+r.status));
+  return j;
+}
+async function post(path,body){try{const j=await api(path,body);if(j.message)toast(j.message);return j}catch(e){toast(_t('Erro: ')+e.message)}}
+
+// Abas
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button,main>section').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');$(b.dataset.t).classList.add('on');
+  if(b.dataset.t==='remote')mirrorLoop();
+  if(b.dataset.t==='screensSec')ordDraw();
+  window.scrollTo(0,0);
+});
+document.querySelectorAll('.sub').forEach(g=>g.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  g.querySelectorAll('button').forEach(x=>{x.classList.remove('on');$(x.dataset.p).classList.remove('on')});
+  b.classList.add('on');$(b.dataset.p).classList.add('on');
+}));
+
+// Status
+const fmtB=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':(n/1024).toFixed(0)+' KB';
+const fmtUp=s=>{const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return(d?d+'d ':'')+h+'h '+m+'min'};
+const dl=(id,rows)=>$(id).innerHTML=rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+const perfShow=p=>{if(!p)return;
+  dl('stPerf',[['Quadros por segundo',p.fps>0?p.fps.toFixed(1):'0 (tela parada)'],['Desenho do quadro',p.drawMs+' ms'],['Envio (comparar e esperar)',p.pushMs+' ms'],['Parte da tela enviada',p.sentPct+'% por quadro'],['Quadros sem mudança',p.skipPct+'%'],['Fio da tela',p.busMHz+' MHz'],['Sincronia (TE)',p.teHz?p.teHz+' Hz':'sem sinal']]);
+  const sc=(p.screens||[]).slice().sort((a,b)=>b.ms-a.ms);
+  dl('stPerfScr',sc.length?sc.map(s=>[s.name,s.ms+' ms'+(s.ms>45?' · pesada':s.ms>25?' · média':' · leve')]):[['—','passe pelas telas para medir']]);};
+let st={},screensBuilt='';
+async function status(){
+  try{st=await api('/api/status')}catch(e){return}
+  $('ver').textContent='v'+st.version;$('verSide').textContent='v'+st.version;
+  $('dot').classList.toggle('on',st.connected);
+  $('net').textContent=st.connected?st.ssid:(st.ap?'Modo configuração':_t('Sem rede'));
+  $('ip').textContent=st.connected?st.ip+' · '+st.host:'';
+  let pwHide=false;try{pwHide=localStorage.getItem('r360pwWarn')==='hide'}catch(e){}
+  $('pwWarn').style.display=st.defaultPassword&&!pwHide?'block':'none';
+  $('packWarn').style.display=st.pack?'none':'block';$('packWarnWhy').textContent=st.packWhy?'('+st.packWhy+')':'ausente';
+  $('safeWarn').style.display=st.safeMode?'block':'none';
+  $('apName').textContent=st.apSsid;
+  $('clockNow').textContent=st.timeValid?'Agora: '+st.time:_t('Hora ainda não sincronizada');
+  if($('pcInfo'))$('pcInfo').textContent=st.pcAddr?('PC encontrado em '+st.pcAddr+(st.pcStatus?' · '+st.pcStatus:'')):(st.pcStatus||'');
+  perfShow(st.perf);
+  dl('stDev',[['Firmware',st.name+' v'+st.version],['Etapa',st.stage],['Hora',st.timeValid?st.time:'aguardando'],['Ligado há',fmtUp(st.uptime)],['Tela',st.screenName+(st.screenOn?'':' (apagada)')],['Voos no radar',st.flights+(st.flightsStatus?' · '+st.flightsStatus:'')],['Fontes dos voos',st.flightsSrc||'—'],['Fotos',st.photos],['Notícias',st.news],['Brilho',st.brightness+'%'],['Processador',(st.cpuNow||'?')+' MHz'],['Fio da tela',(st.perf?st.perf.busMHz:'?')+' MHz'],['Pacote visual',st.pack?'v'+st.pack+' · '+fmtB(st.packBytes):'não encontrado'],['Último reinício',st.resetReason]]);
+  dl('stNet',st.connected?[['Wi-Fi',st.ssid],['Sinal',st.rssi+' dBm'],['Endereço',st.ip],['Nome',st.host],['MAC',st.mac]]:[['Estado',st.ap?'Ponto de acesso '+st.apSsid:'Procurando rede'],...(st.wifiError?[['Última falha',st.wifiErrorSsid+': '+st.wifiError+' (código '+st.wifiErrorCode+')']]:[]),['MAC',st.mac]]);
+  $('crashLast').textContent=st.lastCrash?'Último reinício anormal: '+st.lastCrash:_t('Nenhum reinício anormal desde que ligou.');
+  dl('stMem',[['RAM livre',fmtB(st.heap)+' (mín. '+fmtB(st.heapMin)+')'],['RAM interna',fmtB(st.heapInternal)+' (maior bloco '+fmtB(st.heapLargest)+')'],['Pilhas livres','tela '+st.stackLoop+' B · dados '+st.stackWorker+' B'],['PSRAM livre',fmtB(st.psram)+' de '+fmtB(st.psramTotal)+(st.psramLargest?' (maior bloco '+fmtB(st.psramLargest)+')':'')],['Arquivos (LittleFS)',fmtB(st.fsUsed)+' de '+fmtB(st.fsTotal)],['Firmware',fmtB(st.appSize)+' de '+fmtB(st.appSlot)]]);
+  dl('updInfo',[['Versão',st.version],['Compilado',st.build],['Espaço do firmware',fmtB(st.appSize)+' usados de '+fmtB(st.appSlot)],['Estado',st.otaState==='em teste'?_t('em teste (confirma após 60 s com Wi-Fi)'):'confirmado']]);
+  dl('packInfo',[['Instalado',st.pack?'v'+st.pack+' · '+fmtB(st.packBytes)+(st.packSlot?' de '+fmtB(st.packSlot):''):'nenhum ('+(st.packWhy||'?')+')'],['Este firmware precisa','v'+(st.packNeeded||'?')+' ou mais nova']]);
+  $('recov').style.display=st.recovery?'':'none';
+  const sig=st.screens.filter(x=>x.on).map(x=>x.id).join(',');
+  if(screensBuilt!==sig){screensBuilt=sig;$('screens').innerHTML=st.screens.filter(x=>x.on).map(x=>`<button data-s="${x.id}">${x.name}</button>`).join('');
+    $('screens').querySelectorAll('button').forEach(b=>b.onclick=()=>post('/api/goto',{s:+b.dataset.s}).then(()=>{setTimeout(status,300);setTimeout(mirrorOnce,400)}))}
+  $('screens').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.s===st.screen));
+  if(document.activeElement!==$('rb')){$('rb').value=st.brightness||1;$('rbv').textContent=st.brightness+'%'}
+}
+setInterval(status,3000);status();
+
+// Espelho da tela (RGB565 big-endian)
+const ctx=$('scr').getContext('2d'),img=ctx.createImageData(360,360);let mirrorBusy=false;
+async function mirrorOnce(){
+  if(mirrorBusy)return;mirrorBusy=true;
+  try{const r=await fetch('/api/screen',{cache:'no-store'});const b=new Uint8Array(await r.arrayBuffer());const d=img.data;
+    for(let i=0,j=0;i<b.length;i+=2,j+=4){const v=b[i]<<8|b[i+1];d[j]=(v>>8&0xF8)|(v>>13);d[j+1]=(v>>3&0xFC)|(v>>9&3);d[j+2]=(v<<3&0xF8)|(v>>2&7);d[j+3]=255}
+    ctx.putImageData(img,0,0)}catch(e){}
+  mirrorBusy=false;
+}
+let mirrorT;
+function mirrorLoop(){clearTimeout(mirrorT);if(!$('remote').classList.contains('on'))return;if($('live').checked)mirrorOnce();mirrorT=setTimeout(mirrorLoop,1500)}
+$('live').onchange=mirrorLoop;
+
+// Controle remoto
+document.querySelectorAll('[data-b]').forEach(b=>b.onclick=async()=>{await post('/api/button',{t:b.dataset.b});setTimeout(mirrorOnce,250);setTimeout(status,300)});
+$('rb').oninput=e=>{$('rbv').textContent=e.target.value+'%';clearTimeout(window._rbT);window._rbT=setTimeout(()=>api('/api/brightness',{v:+e.target.value}).catch(()=>{}),120)};
+$('saveBr').onclick=()=>post('/api/brightness',{v:+$('rb').value,save:true}).then(()=>toast(_t('Brilho salvo')));
+$('pwrOff').onclick=()=>post('/api/power',{on:false});
+$('pwrOn').onclick=()=>post('/api/power',{on:true});
+$('sendMsg').onclick=()=>{const t=$('msg').value.trim();if(t)post('/api/message',{text:t}).then(()=>setTimeout(mirrorOnce,300))};
+
+// Configuracoes
+const mm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'),toMin=t=>{const p=(t||'0:0').split(':');return(+p[0]||0)*60+(+p[1]||0)};
+// Redes salvas: lista que cresce (até wMax)
+let wl=[],wMax=20;
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function wlRead(){wl.forEach((w,k)=>{const a=$('ws'+k),b=$('wp'+k);if(a){w.ssid=a.value;w.pass=b.value}})}
+function wlDraw(){
+  $('slots').innerHTML=wl.length?wl.map((w,k)=>`<div class="slot"><b>${k+1}</b><label>Rede<input id="ws${k}" maxlength="32" autocomplete="off" value="${esc(w.ssid||'')}"></label><label class="pw">Senha<input id="wp${k}" type="password" maxlength="64" autocomplete="new-password" placeholder="${w.hasPass&&!w.pass?'•••• (mantida)':''}" value="${esc(w.pass||'')}"></label><button class="btn2" data-del="${k}" title="Remover" aria-label="Remover">✕</button></div>`).join(''):'<p class="note">Nenhuma rede salva.</p>';
+  $('slots').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{wlRead();wl.splice(+b.dataset.del,1);wlDraw()});
+  $('wAdd').disabled=wl.length>=wMax;
+}
+function wlAdd(ssid){wlRead();const k=wl.findIndex(w=>w.ssid===ssid&&ssid);if(k>=0){$('wp'+k).focus();return}
+  if(wl.length>=wMax){toast(_t('Limite de ')+wMax+' redes');return}
+  wl.push({ssid:ssid||''});wlDraw();const n=wl.length-1;(ssid?$('wp'+n):$('ws'+n)).focus()}
+$('wAdd').onclick=()=>wlAdd('');
+let cfg={};
+async function loadCfg(){
+  try{cfg=await api('/api/config')}catch(e){toast(_t('Erro ao ler configurações'));return}
+  cartoShow(cfg);
+  wMax=cfg.wifiMax||20;wl=(cfg.wifi||[]).filter(w=>w.ssid).map(w=>({ssid:w.ssid,i:w.i,hasPass:w.hasPass}));wlDraw();
+  $('tz').value=cfg.tz;const opt=[...$('tzSel').options].find(o=>o.value===cfg.tz);$('tzSel').value=opt?cfg.tz:'custom';
+  ['ntp1','ntp2','host'].forEach(k=>$(k).value=cfg[k]);
+  $('wuser').value=cfg.webUser;
+  $('bright').value=cfg.bright;$('nightBright').value=cfg.nightBright;$('bv').textContent=cfg.bright+'%';$('nbv').textContent=cfg.nightBright+'%';
+  $('nightOn').checked=cfg.nightOn;$('nightStart').value=mm(cfg.nightStart);$('nightEnd').value=mm(cfg.nightEnd);
+  $('rotation').value=cfg.rotation;$('cycleSecs').value=cfg.cycleSecs;$('showSeconds').checked=cfg.showSeconds;$('cpuMhz').value=cfg.cpuMhz||240;$('cpuAuto').checked=!!cfg.cpuAuto;$('lcdTurbo').checked=cfg.lcdTurbo>0;var _up=new URLSearchParams(location.search);LANG=_up.has('lang')?+_up.get('lang'):(+cfg.lang||0);$('lang').value=LANG;applyI18n();$('lang').onchange=function(){location.search='?lang='+this.value};
+  hostHint();
+}
+const hostHint=()=>$('hostHint').textContent='http://'+($('host').value||'radar')+'.local';
+$('host').oninput=hostHint;
+$('tzSel').onchange=e=>{if(e.target.value!=='custom')$('tz').value=e.target.value};
+$('bright').oninput=e=>$('bv').textContent=e.target.value+'%';
+$('nightBright').oninput=e=>$('nbv').textContent=e.target.value+'%';
+$('save').onclick=async()=>{
+  wlRead();const wifi=wl.filter(w=>w.ssid.trim()).map(w=>{const o={ssid:w.ssid.trim()};if(w.pass)o.pass=w.pass;if(w.i!=null)o.i=w.i;return o});
+  const body={wifi,host:$('host').value.trim().toLowerCase()||'radar',tz:$('tz').value.trim()||'GMT0',ntp1:$('ntp1').value.trim(),ntp2:$('ntp2').value.trim(),
+    bright:+$('bright').value,nightBright:+$('nightBright').value,nightOn:$('nightOn').checked,nightStart:toMin($('nightStart').value),nightEnd:toMin($('nightEnd').value),
+    rotation:+$('rotation').value,cycleSecs:+$('cycleSecs').value,showSeconds:$('showSeconds').checked,cpuMhz:+$('cpuMhz').value,cpuAuto:$('cpuAuto').checked,lcdTurbo:$('lcdTurbo').checked,lang:+$('lang').value};
+  const b=$('save');b.disabled=true;const j=await post('/api/config',body);b.disabled=false;
+  if(j&&j.reboot)toast(_t('Salvo. Reiniciando… abra ')+body.host+'.local em alguns segundos',6000);else loadCfg();
+};
+$('savePw').onclick=async()=>{const u=$('wuser').value.trim(),p=$('wpass').value;if(p.length<6)return toast(_t('A senha precisa de 6 caracteres ou mais'));
+  const j=await post('/api/password',{user:u,pass:p});if(j){$('wpass').value='';setTimeout(()=>location.reload(),1500)}};
+$('sync').onclick=()=>post('/api/time-sync').then(()=>setTimeout(status,2500));
+
+// Varredura Wi-Fi
+const bars=r=>r>=-55?'▂▄▆█':r>=-65?'▂▄▆':r>=-75?'▂▄':'▂';
+let scanT;
+$('scan').onclick=async()=>{await post('/api/wifi/scan');$('scanSt').textContent='Procurando…';clearTimeout(scanT);scanT=setTimeout(scanPoll,1500)};
+async function scanPoll(){
+  let j;try{j=await api('/api/wifi/scan')}catch(e){return}
+  if(j.running){scanT=setTimeout(scanPoll,1200);return}
+  $('scanSt').textContent=j.nets.length+' redes encontradas';
+  const n=$('nets');n.style.display=j.nets.length?'block':'none';
+  n.innerHTML=j.nets.map(x=>`<div class="net" data-s="${x.ssid.replace(/"/g,'&quot;')}"><span>${x.ssid.replace(/</g,'&lt;')}</span><span>${bars(x.rssi)} ${x.rssi} dBm${x.secure?' 🔒':''}</span></div>`).join('');
+  n.querySelectorAll('.net').forEach(e=>e.onclick=()=>wlAdd(e.dataset.s));
+}
+
+// Atualizacao
+function upFile(input,url,prog,msg,btn,field){const f=$(input).files[0];if(!f)return toast(_t('Escolha o arquivo .bin'));
+  const fd=new FormData();fd.append(field,f,f.name);const x=new XMLHttpRequest();x.open('POST',url);
+  x.upload.onprogress=e=>{if(e.lengthComputable){$(prog).value=e.loaded/e.total*100;$(msg).textContent='Enviando… '+Math.round(e.loaded/e.total*100)+'%'}};
+  x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}$(msg).textContent=j.message||('HTTP '+x.status);
+    if(j.ok){$(prog).value=100;setTimeout(()=>location.reload(),12000)}else $(btn).disabled=false};
+  x.onerror=()=>{$(msg).textContent='Falha na conexão';$(btn).disabled=false};
+  $(btn).disabled=true;x.send(fd)}
+$('pkUp').onclick=()=>upFile('pk','/api/pack','pkProg','pkMsg','pkUp','pack');
+$('recov').onclick=()=>{if(confirm(_t('Reiniciar no modo recuperação?\nO aparelho mostra na tela o endereço da página de recuperação.')))post('/api/recovery')};
+$('upd').onclick=()=>{const f=$('fw').files[0];if(!f)return toast(_t('Escolha o arquivo .bin'));
+  const fd=new FormData();fd.append('firmware',f,f.name);const x=new XMLHttpRequest();x.open('POST','/api/ota');
+  x.upload.onprogress=e=>{if(e.lengthComputable){$('updProg').value=e.loaded/e.total*100;$('updMsg').textContent='Enviando… '+Math.round(e.loaded/e.total*100)+'%'}};
+  x.onload=()=>{let j={};try{j=JSON.parse(x.responseText)}catch(e){}$('updMsg').textContent=j.message||('Resposta '+x.status);
+    if(j.ok){$('updProg').value=100;setTimeout(()=>location.reload(),12000)}else $('upd').disabled=false};
+  x.onerror=()=>{$('updMsg').textContent='Falha na conexão';$('upd').disabled=false};
+  $('upd').disabled=true;x.send(fd)};
+$('bkExport').onclick=async()=>{try{const r=await fetch('/api/export',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob();
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='radar360-config-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast(_t('Arquivo baixado'))}catch(e){toast(_t('Erro: ')+e.message)}};
+$('bkImport').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;let j;try{j=JSON.parse(await f.text())}catch(x){toast(_t('Arquivo inválido'));return}
+  if(!j||j.r360backup!==1){toast(_t('Esse arquivo não é uma cópia do Radar 360'));return}
+  const n=(j.config&&j.config.wifi||[]).length;if(!confirm(_t('Restaurar as configurações deste arquivo')+(j.firmware?' (versão '+j.firmware+')':'')+'?\n'+n+' rede(s) Wi-Fi. O aparelho vai reiniciar.'))return;
+  const r=await post('/api/import',j);if(r&&r.ok!==false)setTimeout(()=>location.reload(),6000)};
+$('reboot').onclick=()=>{if(confirm(_t('Reiniciar o aparelho?')))post('/api/reboot')};
+$('factory').onclick=()=>{if(confirm(_t('Apagar Wi-Fi, senha e preferências e voltar ao padrão de fábrica?')))post('/api/factory-reset',{confirm:'RESET'})};
+
+
+// ---- Recursos ----
+const CATS=['Widebody (787, 777, A330, A350)','Narrowbody (A320, 737)','Regional (E-Jets, CRJ)','Turboélice (ATR, Caravan)','Executivo (Citation, Phenom)','Leve (Cessna, Piper)','Helicóptero'];
+$('fTypes').innerHTML=CATS.map((t,i)=>`<label class="check"><input type="checkbox" data-cat="${i}">${_t(t)}</label>`).join('');
+const SIGNS=['Áries','Touro','Gêmeos','Câncer','Leão','Virgem','Libra','Escorpião','Sagitário','Capricórnio','Aquário','Peixes'];
+$('hSigns').innerHTML=SIGNS.map((t,i)=>`<label class="check"><input type="checkbox" data-sign="${i}">${String.fromCodePoint(0x2648+i)}\uFE0E <span>${_t(t)}</span></label>`).join('');
+const TOPICS=['Principais','Brasil','Mundo','Negócios','Tecnologia','Entretenimento','Esportes','Ciência','Saúde'];
+$('topics').innerHTML=TOPICS.map((t,i)=>`<label class="check"><input type="checkbox" data-topic="${i}">${_t(t)}</label>`).join('');
+let F={};
+const chk=(id,v)=>$(id).checked=!!v, val=(id,v)=>$(id).value=v;
+let ord=[];
+const SCR_KEY=['','flights','wxRadar','wxNow','wxHours','wxDays','photos','news','dmr','horo','moon','pc','network','quotes','wifi'];
+let scrOn={};
+const ordDraw=()=>{const names={};(st.screens||[]).forEach(x=>{names[x.id]=x.name});
+  $('ordList').innerHTML=ord.map((id,i)=>{const k=SCR_KEY[id]||'';const on=id===0||!!scrOn[k];
+    return `<li><span class="n">${i+1}</span><span class="t ${on?'':'off'}">${names[id]||('Tela '+id)}</span>`+
+    `<label class="sw" title="${id===0?'Sempre ligado':'Ligar/desligar'}"><input type="checkbox" ${k?'data-scr="'+k+'"':'disabled'} ${on?'checked':''}><span></span></label>`+
+    `<button class="mv" data-up="${i}" ${i?'':'disabled'} aria-label="Subir">▲</button><button class="mv" data-dn="${i}" ${i<ord.length-1?'':'disabled'} aria-label="Descer">▼</button></li>`}).join('');
+  $('ordList').querySelectorAll('[data-scr]').forEach(c=>c.onchange=()=>{scrOn[c.dataset.scr]=c.checked;c.closest('li').querySelector('.t').classList.toggle('off',!c.checked)});
+  $('ordList').querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[ord[i-1],ord[i]]=[ord[i],ord[i-1]];ordDraw()});
+  $('ordList').querySelectorAll('[data-dn]').forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[ord[i+1],ord[i]]=[ord[i],ord[i+1]];ordDraw()});};
+$('ordSave').onclick=async()=>{const sc={};SCR_KEY.forEach(k=>{if(k)sc[k]=!!scrOn[k]});const j=await post('/api/features',{screens:sc,order:ord});if(j&&j.ok!==false){toast(_t('Telas salvas'));screensBuilt='';status()}};
+$('ordReset').onclick=()=>{ord=ord.slice().sort((a,b)=>a-b);ordDraw();toast(_t('Toque em Salvar para aplicar'))};
+async function loadFeat(){
+  try{F=await api('/api/features')}catch(e){return}
+  ord=Array.isArray(F.order)?F.order.slice():[];scrOn=Object.assign({},F.screens||{});if(!st.screens){try{st=await api('/api/status')}catch(e){}}ordDraw();
+  val('lat',F.lat.toFixed(5));val('lon',F.lon.toFixed(5));val('place',F.place);
+  const f=F.flights;val('fRadius',f.radiusKm);val('fRefresh',f.refresh);val('fMinAlt',f.minAlt);val('fMaxAlt',f.maxAlt);val('fMax',f.max);val('fSource',f.source);val('fStyle',f.style);val('fDistU',f.distU);val('fAltU',f.altU);val('fSpdU',f.spdU);val('fCenter',f.center);val('fIcao',f.icao);val('mapSrc',F.mapSrc);
+  if(f.icao)icaoCheck();
+  val('fIcon',f.icon??0);val('fColorBy',f.colorBy??0);val('fColor',f.color||'#ffc857');val('fSize',f.size??1);$('fColorBox').style.display=$('fColorBy').value==='2'?'':'none';document.querySelectorAll('[data-cat]').forEach(c=>c.checked=!!((f.types??127)&(1<<c.dataset.cat)));
+  val('cStyle',(F.clock||{}).style??0);
+  chk('fSweep',f.sweep);chk('fRings',f.rings);chk('fVectors',f.vectors);chk('fCallsign',f.callsign);chk('fAltitude',f.altitude);chk('fType',f.type);chk('fGround',f.ground);
+  const w=F.weather;val('wZoom',w.zoom);val('wFrames',w.frames);val('wFrameMs',w.frameMs);val('wStyle',w.style);chk('wCards',w.cards);val('wCardStyle',[0,3,8].includes(w.cardStyle??1)?1:(w.cardStyle??1));val('wNowStyle',w.nowStyle??0);val('wHoursStyle',w.hoursStyle??0);val('wDaysStyle',w.daysStyle??0);chk('wOwn',w.own);val('wLat',(+w.lat).toFixed(5));val('wLon',(+w.lon).toFixed(5));val('wPlace',w.place);$('wLocBox').style.display=w.own?'block':'none';
+  const p=F.photos;val('pSecs',p.secs);chk('pShuffle',p.shuffle);chk('pFade',p.fade);val('pStyle',p.style??1);chk('pWxPop',p.wxPop);
+  const n=F.news;document.querySelectorAll('[data-topic]').forEach(c=>c.checked=!!(n.topics&(1<<c.dataset.topic)));val('nQuery',n.query);val('nUrl',n.url);val('nSecs',n.secs);val('nRefresh',n.refreshMin);val('nStyle',n.style??0);chk('nUrgent',n.urgent??true);
+  const h=F.horo||{};document.querySelectorAll('[data-sign]').forEach(c=>c.checked=!!((h.signs??16)&(1<<c.dataset.sign)));val('hTheme',h.theme??0);val('hSecs',h.secs??15);chk('hScores',h.scores??true);
+  if(F.quotes){const q=F.quotes;val('qLocal',q.local||'BRL');val('qStyle',q.style??0);val('qSecs',q.secs??6);val('qRefresh',q.refresh??5);qItems=(q.items||[]).slice();qDraw()}
+  if(F.pc){val('pcHost',F.pc.host||'');val('pcStyle',F.pc.style??0);val('pcSecs',F.pc.secs??2)}
+  const d=F.dmr;val('dHost',d.host);val('dPoll',d.pollSecs);chk('dLookup',d.lookup);val('dStyle',d.style??0);
+  mapSet(F.lat,F.lon);
+}
+function featBody(k){
+  if(k==='general'){return{clock:{style:+$('cStyle').value},lat:+$('lat').value,lon:+$('lon').value,place:$('place').value.trim(),mapSrc:+$('mapSrc').value}}
+  if(k==='flights')return{flights:{radiusKm:+$('fRadius').value,refresh:+$('fRefresh').value,minAlt:+$('fMinAlt').value,maxAlt:+$('fMaxAlt').value,max:+$('fMax').value,source:+$('fSource').value,style:+$('fStyle').value,distU:+$('fDistU').value,altU:+$('fAltU').value,spdU:+$('fSpdU').value,center:+$('fCenter').value,icao:$('fIcao').value.trim().toUpperCase(),
+    sweep:$('fSweep').checked,rings:$('fRings').checked,vectors:$('fVectors').checked,callsign:$('fCallsign').checked,altitude:$('fAltitude').checked,type:$('fType').checked,ground:$('fGround').checked,
+    icon:+$('fIcon').value,colorBy:+$('fColorBy').value,color:$('fColor').value,size:+$('fSize').value,types:[...document.querySelectorAll('[data-cat]')].reduce((t,c)=>c.checked?t|(1<<c.dataset.cat):t,0)}};
+  if(k==='weather')return{weather:{zoom:+$('wZoom').value,frames:+$('wFrames').value,frameMs:+$('wFrameMs').value,style:+$('wStyle').value,cards:$('wCards').checked,cardStyle:+$('wCardStyle').value,nowStyle:+$('wNowStyle').value,hoursStyle:+$('wHoursStyle').value,daysStyle:+$('wDaysStyle').value,own:$('wOwn').checked,lat:+$('wLat').value,lon:+$('wLon').value,place:$('wPlace').value.trim()}};
+  if(k==='photos')return{photos:{secs:+$('pSecs').value,shuffle:$('pShuffle').checked,fade:$('pFade').checked,style:+$('pStyle').value,wxPop:$('pWxPop').checked}};
+  if(k==='news'){let t=0;document.querySelectorAll('[data-topic]').forEach(c=>{if(c.checked)t|=1<<c.dataset.topic});return{news:{topics:t,query:$('nQuery').value.trim(),url:$('nUrl').value.trim(),secs:+$('nSecs').value,refreshMin:+$('nRefresh').value,style:+$('nStyle').value,urgent:$('nUrgent').checked}}}
+  if(k==='horo')return{horo:{signs:[...document.querySelectorAll('[data-sign]')].reduce((t,c)=>c.checked?t|(1<<c.dataset.sign):t,0),theme:+$('hTheme').value,secs:+$('hSecs').value,scores:$('hScores').checked}};
+  if(k==='quotes')return{quotes:{local:$('qLocal').value,style:+$('qStyle').value,secs:+$('qSecs').value||6,refresh:+$('qRefresh').value||5,items:qItems}};
+  if(k==='pc')return{pc:{host:$('pcHost').value.trim(),style:+$('pcStyle').value,secs:+$('pcSecs').value||2}};
+  if(k==='dmr')return{dmr:{host:$('dHost').value.trim(),pollSecs:+$('dPoll').value,lookup:$('dLookup').checked,style:+$('dStyle').value}};
+}
+document.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{b.disabled=true;await post('/api/features',featBody(b.dataset.save));b.disabled=false;screensBuilt='';status();loadFeat()});
+const cartoShow=c=>{$('cartoKey').value='';$('cartoKey').placeholder=c.cartoKeySet?('chave salva ••••'+(c.cartoKeyEnd||'')+' — cole outra para trocar'):'cole aqui a chave'};
+$('cartoSave').onclick=async()=>{const k=$('cartoKey').value.trim();if(!k){toast(_t('Cole a chave primeiro'));return}
+  const j=await post('/api/config',{cartoKey:k});if(j&&j.ok!==false){toast(_t('Chave salva: os mapas vão ser baixados de novo'));try{cartoShow(await api('/api/config'))}catch(e){}}};
+$('cartoDel').onclick=async()=>{const j=await post('/api/config',{cartoKey:'-'});if(j&&j.ok!==false){toast(_t('Chave apagada: usando OpenStreetMap'));try{cartoShow(await api('/api/config'))}catch(e){}}};
+$('clearMap').onclick=()=>post('/api/features',{clearMapCache:true});
+
+// Busca de cidade (OpenStreetMap Nominatim)
+$('cityGo').onclick=async()=>{const q=$('citySearch').value.trim();if(!q)return;
+  try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=en&q='+encodeURIComponent(q));const a=await r.json();
+    const box=$('cityRes');box.style.display=a.length?'block':'none';if(!a.length)toast(_t('Nada encontrado'));
+    box.innerHTML=a.map((x,i)=>`<div class="net" data-i="${i}"><span>${x.display_name.replace(/</g,'&lt;')}</span></div>`).join('');
+    box.querySelectorAll('.net').forEach(e=>e.onclick=()=>{const x=a[+e.dataset.i];val('lat',(+x.lat).toFixed(5));val('lon',(+x.lon).toFixed(5));val('place',(x.name||x.display_name.split(',')[0]).slice(0,48));box.style.display='none';mapSet(+x.lat,+x.lon)})}
+  catch(e){toast(_t('Busca indisponível (sem internet no navegador?)'))}};
+$('citySearch').onkeydown=e=>{if(e.key==='Enter')$('cityGo').click()};
+
+// Mini mapa (tiles OSM)
+let MZ=10,MC={lat:51.5074,lon:-0.1278};
+const proj=(lat,lon,z)=>{const s=256*2**z,si=Math.sin(lat*Math.PI/180);return{x:(lon+180)/360*s,y:(.5-Math.log((1+si)/(1-si))/(4*Math.PI))*s}};
+const unproj=(x,y,z)=>{const s=256*2**z,n=Math.PI-2*Math.PI*y/s;return{lat:180/Math.PI*Math.atan(Math.sinh(n)),lon:x/s*360-180}};
+function mapDraw(){const el=$('map'),w=el.clientWidth,h=el.clientHeight;if(!w)return;const c=proj(MC.lat,MC.lon,MZ),n=2**MZ;let html='';
+  for(let ty=Math.floor((c.y-h/2)/256);ty<=Math.floor((c.y+h/2)/256);ty++)for(let tx=Math.floor((c.x-w/2)/256);tx<=Math.floor((c.x+w/2)/256);tx++){if(ty<0||ty>=n)continue;
+    html+=`<img src="https://tile.openstreetmap.org/${MZ}/${((tx%n)+n)%n}/${ty}.png" style="left:${Math.round(tx*256-c.x+w/2)}px;top:${Math.round(ty*256-c.y+h/2)}px">`}
+  $('mapTiles').innerHTML=html}
+function mapSet(lat,lon){MC={lat,lon};mapDraw()}
+$('map').onclick=e=>{if(e.target.closest('.mz'))return;const r=$('map').getBoundingClientRect(),c=proj(MC.lat,MC.lon,MZ);
+  const p=unproj(c.x+e.clientX-r.left-r.width/2,c.y+e.clientY-r.top-r.height/2,MZ);val('lat',p.lat.toFixed(5));val('lon',p.lon.toFixed(5));mapSet(p.lat,p.lon)};
+document.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{MZ=Math.max(3,Math.min(17,MZ+ +b.dataset.z));mapDraw()});
+['lat','lon'].forEach(id=>$(id).onchange=()=>mapSet(+$('lat').value,+$('lon').value));
+document.querySelectorAll('[data-p="fGeneral"],[data-t="features"]').forEach(b=>b.addEventListener('click',()=>setTimeout(mapDraw,50)));
+
+// Fotos: corte e reducao para 360x360 no navegador
+async function toJpeg360(file){
+  const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+  const s=Math.min(bmp.width,bmp.height),sx=(bmp.width-s)/2,sy=(bmp.height-s)/2;
+  // Reducao em etapas (metade por vez) para ficar nitida
+  let src=bmp,sw=s,ox=sx,oy=sy;
+  while(sw>720){const c=document.createElement('canvas');const n=Math.round(sw/2);c.width=c.height=n;const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(src,ox,oy,sw,sw,0,0,n,n);src=c;sw=n;ox=oy=0}
+  const c=document.createElement('canvas');c.width=c.height=360;const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(src,ox,oy,sw,sw,0,0,360,360);
+  return await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+}
+async function loadPhotos(){
+  let j;try{j=await api('/api/photos')}catch(e){return}
+  $('photoInfo').textContent=j.photos.length+' fotos · livre '+fmtB(j.free)+' de '+fmtB(j.total);
+  $('photoList').innerHTML=j.photos.map(p=>`<div class="thumb"><img loading="lazy" src="/api/photo?name=${encodeURIComponent(p.name)}"><button data-del="${p.name}" title="Apagar">✕</button></div>`).join('');
+  $('photoList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm(_t('Apagar esta foto?'))){await post('/api/photo-delete',{name:b.dataset.del});loadPhotos()}});
+}
+$('photoSend').onclick=async()=>{const fs=[...$('photoFiles').files];if(!fs.length)return toast(_t('Escolha as fotos'));
+  const b=$('photoSend');b.disabled=true;let ok=0;
+  for(let i=0;i<fs.length;i++){
+    $('photoProg').value=i/fs.length*100;$('photoInfo').textContent=_t('Preparando ')+(i+1)+_t(' de ')+fs.length+'…';
+    try{const blob=await toJpeg360(fs[i]);const fd=new FormData();fd.append('photo',blob,'f'+Date.now().toString(36)+i+'.jpg');
+      const r=await fetch('/api/photos',{method:'POST',body:fd});const j=await r.json();if(!j.ok)throw new Error(j.message);ok++}
+    catch(e){toast(_t('Erro: ')+e.message);break}}
+  $('photoProg').value=100;b.disabled=false;$('photoFiles').value='';toast(ok+' foto(s) enviada(s)');loadPhotos()};
+document.querySelector('[data-p="fPhotos"]').addEventListener('click',loadPhotos);
+
+// Busca de cidade para o clima
+$('wOwn').onchange=e=>$('wLocBox').style.display=e.target.checked?'block':'none';
+$('wGo').onclick=async()=>{const q=$('wSearch').value.trim();if(!q)return;
+  try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&accept-language=en&q='+encodeURIComponent(q));const a=await r.json();
+    const box=$('wRes');box.style.display=a.length?'block':'none';if(!a.length)toast(_t('Nada encontrado'));
+    box.innerHTML=a.map((x,i)=>`<div class="net" data-i="${i}"><span>${x.display_name.replace(/</g,'&lt;')}</span></div>`).join('');
+    box.querySelectorAll('.net').forEach(e=>e.onclick=()=>{const x=a[+e.dataset.i];val('wLat',(+x.lat).toFixed(5));val('wLon',(+x.lon).toFixed(5));val('wPlace',(x.name||x.display_name.split(',')[0]).slice(0,48));box.style.display='none'})}
+  catch(e){toast(_t('Busca indisponível (sem internet no navegador?)'))}};
+$('wSearch').onkeydown=e=>{if(e.key==='Enter')$('wGo').click()};
+// Aeroporto pelo ICAO (banco interno com ~6.900 aeroportos)
+async function icaoCheck(){const c=$('fIcao').value.trim().toUpperCase();if(c.length!==4){$('icaoName').textContent=_t('Digite 4 letras (ex.: SBSJ, SBGR, SBKP)');return}
+  try{const j=await api('/api/airport?icao='+c);$('icaoName').textContent='✓ '+j.icao+' — '+j.name+' ('+(+j.lat).toFixed(3)+', '+(+j.lon).toFixed(3)+')'}catch(e){$('icaoName').textContent='✗ '+e.message}}
+$('icaoGo').onclick=icaoCheck;$('fIcao').onchange=icaoCheck;
+// Diagnostico
+async function crashLoad(){try{const r=await fetch('/api/crash');const a=await r.json();$('crashBox').textContent=a.length?JSON.stringify(a,null,1):_t('Nenhum registro.');return a}catch(e){return[]}}
+$('crashShow').onclick=async()=>{await crashLoad();$('crashBox').style.display='block'};
+$('crashCopy').onclick=async()=>{await crashLoad();const t=$('crashBox').textContent;try{await navigator.clipboard.writeText(t);toast(_t('Copiado'))}catch(e){$('crashBox').style.display='block';toast(_t('Selecione o texto e copie'))}};
+$('crashClear').onclick=()=>post('/api/crash-clear').then(()=>{$('crashBox').textContent='';status()});
+
+$('pwWarnX').onclick=()=>{try{localStorage.setItem('r360pwWarn','hide')}catch(e){}$('pwWarn').style.display='none';toast(_t('Aviso escondido neste navegador'))};
+// Cotações: lista que cresce ate 10, com ordem
+let qItems=[];
+function qDraw(){
+  $('qList').innerHTML=qItems.length?qItems.map((c,i)=>`<li><span class="n">${i+1}</span><span class="t">${c}</span><button class="mv" data-qu="${i}" ${i?'':'disabled'} aria-label="Subir">▲</button><button class="mv" data-qd="${i}" ${i<qItems.length-1?'':'disabled'} aria-label="Descer">▼</button><button class="mv" data-qx="${i}" aria-label="Remover">✕</button></li>`).join(''):'<li><span class="t off">Nenhuma escolhida</span></li>';
+  $('qList').querySelectorAll('[data-qu]').forEach(b=>b.onclick=()=>{const i=+b.dataset.qu;[qItems[i-1],qItems[i]]=[qItems[i],qItems[i-1]];qDraw()});
+  $('qList').querySelectorAll('[data-qd]').forEach(b=>b.onclick=()=>{const i=+b.dataset.qd;[qItems[i+1],qItems[i]]=[qItems[i],qItems[i+1]];qDraw()});
+  $('qList').querySelectorAll('[data-qx]').forEach(b=>b.onclick=()=>{qItems.splice(+b.dataset.qx,1);qDraw()});
+  $('qAdd').disabled=qItems.length>=10;
+}
+$('qAdd').onclick=()=>{let c=$('qPick').value;
+  if(c==='other'){c=(prompt(_t('Código da moeda ou cripto (ex.: MXN, ADA)'))||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');if(!c)return}
+  if(c===$('qLocal').value)return toast(_t('Essa já é a moeda local'));
+  if(qItems.includes(c))return toast(_t('Já está na lista'));
+  if(qItems.length>=10)return toast(_t('Limite de 10'));
+  qItems.push(c);qDraw()};
+$('fColorBy').addEventListener('change',()=>{$('fColorBox').style.display=$('fColorBy').value==='2'?'':'none'});
+// Aparência
+const ACCENTS=[[_t('Menta'),'#5fffd2'],[_t('Azul'),'#5aa9ff'],[_t('Roxo'),'#a78bfa'],[_t('Laranja'),'#ff9f43'],[_t('Rosa'),'#ff6fae'],[_t('Dourado'),'#f5c542']];
+function lookDraw(){const L=lookGet();
+  $('lookAccent').innerHTML=ACCENTS.map(([n,c])=>`<button data-c="${c}" title="${n}" aria-label="${n}" style="background:${c}" class="${L.accent.toLowerCase()===c?'on':''}"></button>`).join('')+
+    `<label class="pick ${ACCENTS.some(a=>a[1]===L.accent.toLowerCase())?'':'on'}" title="Outra cor"><input type="color" id="lookCustom" value="${L.accent}"><span>+</span></label>`;
+  $('lookAccent').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>lookSet({accent:b.dataset.c}));
+  $('lookCustom').oninput=e=>lookSet({accent:e.target.value},true);
+  $('lookCustom').onchange=()=>lookDraw();
+  [['lookMode','mode'],['lookRadius','radius'],['lookFs','fs']].forEach(([id,k])=>$(id).querySelectorAll('button').forEach(b=>{b.classList.toggle('on',b.dataset.v===String(L[k]));b.onclick=()=>lookSet({[k]:b.dataset.v})}));}
+function lookSet(p,quiet){const L=Object.assign(lookGet(),p);try{localStorage.setItem('r360look',JSON.stringify(L))}catch(e){}lookApply(L);if(!quiet)lookDraw()}
+$('lookReset').onclick=()=>{try{localStorage.removeItem('r360look')}catch(e){}lookApply(lookGet());lookDraw();toast(_t('Aparência padrão'))};
+if(window.matchMedia)matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>lookApply(lookGet()));
+lookDraw();
+mirrorLoop();
+loadFeat();
+
+loadCfg();
+
+</script>
+</body>
+</html>

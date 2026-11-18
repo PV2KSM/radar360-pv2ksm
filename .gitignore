@@ -1,0 +1,28 @@
+# Build output
+/build/
+firmware/radar360/build/
+*.ota.bin
+*.factory.bin
+
+# Firmware build artifacts
+/tmp/
+
+# Simulator
+tools/sim/sim
+tools/sim/sim_asan
+tools/sim/src/
+tools/sim/obj/
+tools/sim/out/
+tools/sim/shots/
+tools/sim/*.o
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+docs/PROXIMAS.md
