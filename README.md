@@ -12,6 +12,8 @@ A smart desk companion: live flight radar, animated rain radar, weather, news, c
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![OTA](https://img.shields.io/badge/updates-OTA-orange)
 
+<img src="docs/images/demo.gif" width="280" alt="Radar 360 cycling through its screens">
+
 <img src="docs/images/clock.png" width="200"> <img src="docs/images/rain_radar.png" width="200"> <img src="docs/images/wifi_list.png" width="200">
 
 </div>
