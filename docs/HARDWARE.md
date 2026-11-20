@@ -5,6 +5,7 @@
 > - You must **solder** a header (or wires) to the P1 pads.
 > - You must use a **3.3 V logic** USB‑TTL adapter. **Never use 5 V logic** — you can destroy the ESP32‑S3.
 > - The exact function of each P1 pad is **not printed** on the board. **Verify every pad with a multimeter before connecting anything** (see below). Connecting power or TX/RX to the wrong pad can **permanently damage** the device.
+> - **The pad order/pinout varies between board versions and revisions.** The photos below are only a reference for one unit — **do not trust any photo or table for your board.** Always map the pads on *your* revision with a multimeter.
 > - **You do this entirely at your own risk.** This is an unofficial hobby firmware; the authors take **no responsibility** for damaged hardware.
 >
 > After the first successful flash, **all future updates are over‑the‑air** from the web panel — no more soldering.
@@ -26,6 +27,8 @@ The programming header is the **6‑pad column marked `P1`** near the USB‑C co
 ![Radar 360 board — the P1 pad column is on the left edge](images/board_header.jpg)
 
 ![Radar 360 board, full view](images/board.jpg)
+
+> ⚠️ **These photos show one specific board and are a reference only.** The pad layout **changes from version to version** — the pads may be in a different order, or in a different place, on your unit. Treat the images as "what P1 looks like," never as the pinout for your board. The table below lists the signals you need to find; **which physical pad is which is for you to confirm with a multimeter** on your own revision.
 
 A standard ESP32‑S3 UART download needs just four signals:
 
